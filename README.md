@@ -1,0 +1,7 @@
+# Traduccion Cotorra
+Esta aplicación ofrece traducción multilingue con login seguro, traducción de texto, imagen y diccionario. Su diseño es rápido, intuitivo y accesible, facilitando la comunicación en distintos idiomas de forma sencilla y eficiente.
+## Descripción del proyecto
+Traducción Cotorra es una aplicación orientada a facilitar la traducción y comunicación multilingüe, integrando funcionalidades como autenticación segura, traducción en tiempo real, reconocimiento de texto en imágenes (OCR), manejo de diccionario de frases y almacenamiento de traducciones favoritas.
+## Bitácora
+### 17-09-2025
+- Se creó el repositorio para la aplicacion "Traduccion Cotorra" y se creo su archivo README.
