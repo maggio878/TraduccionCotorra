@@ -31,6 +31,9 @@
 
     <!-- Container para los campos de entrada -->
     <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+
         android:id="@+id/login_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -86,10 +89,11 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Botón Iniciar Sesión -->
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_login"
             android:layout_width="match_parent"
             android:layout_height="60dp"
+            app:backgroundTint="@null"
             android:background="@drawable/button_orange_background"
             android:text="Iniciar sesión"
             android:textColor="@android:color/white"
