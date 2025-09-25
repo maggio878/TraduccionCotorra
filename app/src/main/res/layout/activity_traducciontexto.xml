@@ -96,7 +96,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="@drawable/circle_button_background"
-                android:src="@drawable/ic_swap"
+                android:src="@drawable/password"
                 android:layout_marginEnd="16dp" />
 
             <Button
@@ -114,7 +114,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="@drawable/circle_button_background"
-                android:src="@drawable/ic_camera"
+                android:src="@drawable/password"
                 android:layout_marginStart="16dp" />
         </LinearLayout>
 
