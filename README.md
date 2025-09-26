@@ -8,4 +8,6 @@ Traducción Cotorra es una aplicación orientada a facilitar la traducción y co
 ### 18-09-2025
 - Se creó la interfaz de Login de la app integrando un boton funcional.
 ### 24-09-2025
-- Se creo la Interfaz base de la ventana "Traduccion de Texto"
+- Se creo la Interfaz base para "Traduccion de Texto"
+### 25-09-2025
+- Se creo la Interfaz  base para "Traduccion de Archivo"

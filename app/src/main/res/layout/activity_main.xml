@@ -12,7 +12,7 @@
         android:layout_height="120dp"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="130dp"
-        android:src="@drawable/cotorro" />
+        android:src="@drawable/parrot" />
 
     <!-- Título de la app -->
     <TextView
