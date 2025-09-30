@@ -2,4 +2,9 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="blue_menu">#006E90</color>
+    <color name ="orange_menu">#f18f01</color>
+    <color name ="config_bg">#adcad6</color>
+    <color name ="green_menu">#99c24d</color>
+    <color name = "lightblue_menu">#41bbd9</color>
 </resources>
