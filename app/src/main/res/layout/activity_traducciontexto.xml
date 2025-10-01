@@ -122,58 +122,5 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Barra de navegación inferior -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_alignParentBottom="true"
-        android:background="#FFFFFF"
-        android:orientation="horizontal"
-        android:elevation="8dp">
 
-        <ImageButton
-            android:id="@+id/nav_text"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_text"
-            android:tint="#4CAF50" />
-
-        <ImageButton
-            android:id="@+id/nav_camera"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_camera"
-            android:tint="#757575" />
-
-        <ImageButton
-            android:id="@+id/nav_file"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_file"
-            android:tint="#757575" />
-
-        <ImageButton
-            android:id="@+id/nav_saved"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_saved"
-            android:tint="#757575" />
-
-        <ImageButton
-            android:id="@+id/nav_settings"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_settings"
-            android:tint="#757575" />
-    </LinearLayout>
 </RelativeLayout>
