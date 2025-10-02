@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".TraduccionTexto"
+    android:id="@+id/translation_frag"
+    android:background="@drawable/app_bg_removed">
+    <!-- Barra superior con título -->
+    <RelativeLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:padding="20dp">
+        <ImageView
+            android:id="@+id/menu_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/parrot2"
+            android:contentDescription="Logo" />
+        <ImageButton
+            android:id="@+id/menu_button_config"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/settings2"
+            android:background="@android:color/transparent"
+            android:contentDescription="Menú" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:text="TRADUCCIÓN \nDE \n TEXTO"
+            android:textColor="@android:color/black"
+            android:textSize="22sp"
+            android:textStyle="bold"/>
+    </RelativeLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_bar"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Text input area - takes 40% of space -->
+        <EditText
+            android:id="@+id/txt_TextoIngresado"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:background="@null"
+            android:gravity="top|start"
+            android:hint="Escribe o pega el texto aquí"
+            android:inputType="textMultiLine"
+            android:padding="8dp"
+            android:textSize="16sp" />
+
+        <!-- Translation area - takes 40% of space -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2">
+
+            <TextView
+                android:id="@+id/txtv_TextoTraducido"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="top|start"
+                android:hint="Traducción"
+                android:padding="8dp"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/btn_favorite"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/favorite"
+                android:contentDescription="Añadir a favoritos" />
+        </FrameLayout>
+
+        <!-- Spacer - takes 5% of space -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5" />
+
+        <!-- Spinner area - takes 15% of space -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <androidx.appcompat.widget.AppCompatSpinner
+                android:id="@+id/spinner_source_language"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/rounded_spinner_bg"
+                android:contentDescription="Idioma de origen" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_send"
+                android:layout_marginHorizontal="16dp"
+                android:contentDescription="Traducir" />
+
+            <androidx.appcompat.widget.AppCompatSpinner
+                android:id="@+id/spinner_result_language"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/rounded_spinner_bg"
+                android:contentDescription="Idioma de destino" />
+        </LinearLayout>
+        <!-- leave space for the bottom menu, change the favorite button, add the swap button, change the side bar menu button-->
+    </LinearLayout>
+
+</RelativeLayout>
+
+
+

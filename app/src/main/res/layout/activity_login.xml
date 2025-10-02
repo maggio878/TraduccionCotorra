@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:id="@+id/main"
 
-    android:background="@drawable/fondologin">
+    android:background="@drawable/app_bg_removed">
 
     <!-- Logo del loro -->
     <ImageView
