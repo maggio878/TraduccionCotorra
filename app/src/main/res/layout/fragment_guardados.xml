@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Guardado"
-    android:id="@+id/translation_frag"
+    android:id="@+id/favoritos_frag"
     android:background="@drawable/app_bg_removed">
 
     <!-- Barra superior con título -->
