@@ -45,7 +45,7 @@
 
     <!-- Search Bar - Positioned below top_bar -->
     <LinearLayout
-        android:id="@+id/search_bar_container"
+        android:id="@+id/search_bar_documentos"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/top_bar"
@@ -64,7 +64,7 @@
             android:src="@android:drawable/ic_menu_search" />
 
         <EditText
-            android:id="@+id/txt_BuscarDocumentos"
+            android:id="@+id/et_buscar_documentos"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -81,14 +81,14 @@
         android:id="@+id/recent_documents_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/search_bar_container"
+        android:layout_below="@id/search_bar_documentos"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="72dp">
 
         <!-- Section Title -->
         <TextView
-            android:id="@+id/recent_documents_title"
+            android:id="@+id/documentos_recientes_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Documentos recientes"
