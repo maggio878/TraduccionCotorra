@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/main"
-
     android:background="@drawable/app_bg_removed">
 
     <!-- Logo del loro -->
@@ -46,9 +45,12 @@
 
         <!-- Campo Usuario -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_usuario"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
+            app:errorEnabled="true"
+            app:errorTextColor="#FF0000"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -62,8 +64,11 @@
                 android:textSize="18sp"
                 android:paddingLeft="50dp"
                 android:paddingRight="16dp"
+                android:inputType="text"
                 android:drawableLeft="@drawable/ic_user"
-                android:drawablePadding="12dp" />
+                android:drawablePadding="12dp"
+                android:maxLines="1"
+                android:imeOptions="actionNext"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Campo Contraseña -->
