@@ -73,9 +73,12 @@
 
         <!-- Campo Contraseña -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="40dp"
+            app:errorEnabled="true"
+            app:errorTextColor="#FF0000"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -91,7 +94,8 @@
                 android:paddingRight="16dp"
                 android:textColor="@android:color/white"
                 android:textColorHint="@android:color/white"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:imeOptions="actionDone"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Botón Iniciar Sesión -->
