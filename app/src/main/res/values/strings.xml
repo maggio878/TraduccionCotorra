@@ -3,4 +3,9 @@
     <string name="about_us"></string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="str_menu_texto">Traduccion de texto</string>
+    <string name="str_menu_doc">Traduccion de documento</string>
+    <string name="str_menu_cam">Traduccion por camara</string>
+    <string name="str_menu_gdo">Guardados</string>
+    <string name="str_menu_dic">Diccionario</string>
 </resources>
