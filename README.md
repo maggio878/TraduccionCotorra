@@ -19,3 +19,7 @@ Traducción Cotorra es una aplicación orientada a facilitar la traducción y co
 - Se implementaron fragments
 ### 02-10-2025
 - Se crearon todos los fragments necesarios para el funcionamiento del menu de la app
+### 03-10-2025
+- Se termino la implementacion de la navegacion en el menu inferior y fragments en la app
+### 04-10-2025
+- Se termino la implementacion de los controles utilizados en la app
