@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
 
             // Ir a la siguiente actividad/fragment
-            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+            Intent intent = new Intent(MainActivity.this, MainNavigationActivity.class);
             intent.putExtra("USUARIO", usuario); // Enviar el nombre de usuario
             startActivity(intent);
             finish(); // Cerrar el login para que no pueda volver con el botón atrás
