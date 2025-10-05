@@ -1,4 +1,3 @@
-
 package com.example.traduccioncotorra;
 
 import android.os.Bundle;
