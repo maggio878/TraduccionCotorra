@@ -121,11 +121,8 @@ public class TraduccionTexto extends Fragment {
                 Toast.makeText(getContext(), "Removido de favoritos", Toast.LENGTH_SHORT).show();
             }
         });
-
-        // Listener para el botón de configuración
         menuButtonConfig.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Menú de configuración", Toast.LENGTH_SHORT).show();
-            // Aquí podrías abrir un drawer o navegar a otro fragment
+            abrirConfiguracion();
         });
 
         // Traducir mientras el usuario escribe (opcional, puedes comentar si prefieres un botón)
@@ -163,5 +160,15 @@ public class TraduccionTexto extends Fragment {
         // En un proyecto real, aquí usarías una API de traducción
 
         return "[" + destino + "] " + texto + " (traducción simulada)";
+    }
+    private void abrirConfiguracion() {
+        // Navegar al fragment de configuración
+        Configuracion configuracionFragment = new Configuracion();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, configuracionFragment)
+                .addToBackStack(null) // Permite volver atrás
+                .commit();
     }
 }
