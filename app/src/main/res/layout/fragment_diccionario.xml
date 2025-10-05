@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -42,7 +43,7 @@
             android:textStyle="bold"/>
     </RelativeLayout>
 
-    <!-- Search Bar - Positioned below top_bar -->
+    <!-- Search Bar -->
     <LinearLayout
         android:id="@+id/search_bar_diccionario"
         android:layout_width="match_parent"
@@ -64,7 +65,7 @@
 
         <EditText
             android:id="@+id/et_buscar_definicion"
-            android:layout_width="1dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@null"
@@ -74,37 +75,55 @@
             android:maxLines="1"
             android:padding="8dp" />
     </LinearLayout>
-    <!-- Main Content Area (can be used for document list later) -->
-    <!-- Recent Documents Section -->
-    <FrameLayout
-        android:id="@+id/diccionario_container"
+
+    <!-- ScrollView para el contenido -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/search_bar_diccionario"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="72dp">
 
-        <!-- Grid of palabras -->
-        <GridLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:columnCount="3"
-            android:useDefaultMargins="true">
-            <!-- Add more document buttons as needed -->
-        </GridLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <!-- Empty State Message (shown when no recent documents) -->
-        <TextView
-            android:id="@+id/no_coincidences_message"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="No hay palabaras que coincidan"
-            android:textSize="16sp"
-            android:textColor="#757575"
-            android:visibility="gone"/>
-    </FrameLayout>
-    <!-- somehow add a grid and some resources so it can show the recent files with its data -->
+            <!-- Título de sección -->
+            <TextView
+                android:id="@+id/tv_palabras_disponibles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Frases básicas disponibles"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/blue_menu"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Contenedor de palabras -->
+            <LinearLayout
+                android:id="@+id/container_palabras"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+            </LinearLayout>
+
+            <!-- Mensaje cuando no hay coincidencias -->
+            <TextView
+                android:id="@+id/no_coincidences_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="No hay palabras que coincidan"
+                android:textSize="16sp"
+                android:textColor="#757575"
+                android:padding="32dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
 </RelativeLayout>
