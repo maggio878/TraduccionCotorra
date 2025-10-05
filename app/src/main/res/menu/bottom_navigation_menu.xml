@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/nav_traduccion_texto"
+        android:id="@+id/nav_texto"
         android:enabled="true"
         android:icon="@drawable/text"
         android:title="@string/str_menu_texto"/>
     <item
-        android:id="@+id/nav_traduccion_documento"
+        android:id="@+id/nav_documento"
         android:enabled="true"
         android:icon="@drawable/upload"
         android:title="@string/str_menu_doc"/>
     <item
-        android:id="@+id/nav_traduccion_camara"
+        android:id="@+id/nav_camara"
         android:enabled="true"
         android:icon="@drawable/camera2"
         android:title="@string/str_menu_cam"/>

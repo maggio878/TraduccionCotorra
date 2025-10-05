@@ -21,14 +21,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Activity principal que contiene los fragments -->
-        <activity
-            android:name=".HomeActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".BlankActivity"
-            android:exported="false" />
+        <activity android:name=".MainNavigationActivity" />
     </application>
 
 </manifest>
