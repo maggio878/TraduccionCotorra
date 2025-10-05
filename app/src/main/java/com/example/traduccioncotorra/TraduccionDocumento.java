@@ -48,14 +48,12 @@ public class TraduccionDocumento extends Fragment {
         etBuscarDocumentos = view.findViewById(R.id.et_buscar_documentos);
         menuButtonConfig = view.findViewById(R.id.menu_button_config);
 
-        // Obtener referencias a los documentos (los LinearLayout con los iconos)
-        // Por simplicidad, vamos a simular los clicks en el contenedor
     }
 
     private void configurarListeners() {
         // Listener para el botón de configuración
         menuButtonConfig.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Menú de configuración", Toast.LENGTH_SHORT).show();
+            abrirConfiguracion();
         });
 
         // Listener para el campo de búsqueda
@@ -98,8 +96,6 @@ public class TraduccionDocumento extends Fragment {
     }
 
     private void configurarClickDocumento(View parentView, String nombreDoc, String contenido) {
-        // Este método simula la configuración de clicks
-        // En una app real, estos elementos se crearían dinámicamente
         Toast.makeText(getContext(),
                 "Documentos listos para traducir. Toca un documento para abrirlo.",
                 Toast.LENGTH_SHORT).show();
@@ -133,5 +129,13 @@ public class TraduccionDocumento extends Fragment {
                     Toast.LENGTH_SHORT).show();
         }
     }
+    private void abrirConfiguracion() {
+        Configuracion configuracionFragment = new Configuracion();
 
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, configuracionFragment)
+                .addToBackStack(null)
+                .commit();
+    }
 }

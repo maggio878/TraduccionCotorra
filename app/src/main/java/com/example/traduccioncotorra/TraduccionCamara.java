@@ -109,7 +109,7 @@ public class TraduccionCamara extends Fragment {
 
         // Listener para el botón de configuración
         menuButtonConfig.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Menú de configuración", Toast.LENGTH_SHORT).show();
+            abrirConfiguracion();
         });
     }
 
@@ -133,8 +133,7 @@ public class TraduccionCamara extends Fragment {
     }
 
     private String simularOCR() {
-        // Simulación de texto extraído de una imagen
-        // En producción, aquí usarías ML Kit de Google o Tesseract OCR
+
         String[] textosSimulados = {
                 "Hello World",
                 "Welcome to our restaurant",
@@ -150,8 +149,17 @@ public class TraduccionCamara extends Fragment {
     }
 
     private String simularTraduccion(String texto, String idiomaDestino) {
-        // Simulación simple de traducción
-        // En producción, aquí usarías Google Translate API o similar
+        // En producción, aquí usaríamos Google Translate API o similar
         return "[" + idiomaDestino + "] " + texto + " (traducción simulada desde cámara)";
+    }
+
+    private void abrirConfiguracion() {
+        Configuracion configuracionFragment = new Configuracion();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, configuracionFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }

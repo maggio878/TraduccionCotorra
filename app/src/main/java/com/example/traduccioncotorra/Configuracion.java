@@ -58,6 +58,7 @@ public class Configuracion extends Fragment {
         btnEliminarHistorial = view.findViewById(R.id.btn_eliminar_historial);
         btnInformacionApp = view.findViewById(R.id.btn_informacion_app);
         btnCuenta = view.findViewById(R.id.btn_cuenta);
+
     }
 
     private void configurarSpinners() {
@@ -92,7 +93,7 @@ public class Configuracion extends Fragment {
                 Toast.makeText(getContext(),
                         "Idioma principal: " + idiomaPrincipal,
                         Toast.LENGTH_SHORT).show();
-                // Aquí guardarías en base de datos o SharedPreferences
+                // Aquí guardaríamos en base de datos
             }
 
             @Override
@@ -158,7 +159,6 @@ public class Configuracion extends Fragment {
 
         // Botón eliminar historial
         btnEliminarHistorial.setOnClickListener(v -> {
-            // Mostrar diálogo de confirmación
             mostrarDialogoConfirmacion();
         });
 

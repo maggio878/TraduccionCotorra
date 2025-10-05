@@ -125,7 +125,6 @@ public class TraduccionTexto extends Fragment {
             abrirConfiguracion();
         });
 
-        // Traducir mientras el usuario escribe (opcional, puedes comentar si prefieres un botón)
         txtTextoIngresado.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 traducirTexto();
@@ -156,8 +155,6 @@ public class TraduccionTexto extends Fragment {
     }
 
     private String simularTraduccion(String texto, String origen, String destino) {
-        // Esta es una simulación simple para demostración
-        // En un proyecto real, aquí usarías una API de traducción
 
         return "[" + destino + "] " + texto + " (traducción simulada)";
     }

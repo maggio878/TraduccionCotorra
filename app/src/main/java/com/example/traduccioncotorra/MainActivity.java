@@ -124,8 +124,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean validarCredenciales(String usuario, String password) {
-        // Validación simulada (sin base de datos)
-        // En producción, esto se haría contra una base de datos
         return usuario.equals(USUARIO_VALIDO) && password.equals(PASSWORD_VALIDA);
     }
 }

@@ -170,7 +170,7 @@ public class Guardado extends Fragment {
 
         mostrarMensajeVacio(false);
 
-        // Crear un ScrollView si el contenedor no lo tiene
+        // Crear un ScrollView para el contenedor
         ScrollView scrollView = new ScrollView(getContext());
         LinearLayout linearLayout = new LinearLayout(getContext());
         linearLayout.setOrientation(LinearLayout.VERTICAL);

@@ -96,7 +96,7 @@ public class Diccionario extends Fragment {
     private void configurarListeners() {
         // Listener para el botón de configuración
         menuButtonConfig.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Menú de configuración", Toast.LENGTH_SHORT).show();
+            abrirConfiguracion();
         });
 
         // Listener para el campo de búsqueda
@@ -207,7 +207,6 @@ public class Diccionario extends Fragment {
                 "\"" + palabra + "\" agregada a favoritos",
                 Toast.LENGTH_SHORT).show();
 
-        // Aquí en una app real, guardarías en base de datos
     }
 
     // Método para obtener una frase aleatoria del día
@@ -224,5 +223,14 @@ public class Diccionario extends Fragment {
                             traducciones.get("Español") + " = " + traducciones.get("Inglés"),
                     Toast.LENGTH_LONG).show();
         }
+    }
+    private void abrirConfiguracion() {
+        Configuracion configuracionFragment = new Configuracion();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, configuracionFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
