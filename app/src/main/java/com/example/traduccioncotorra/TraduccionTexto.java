@@ -1,6 +1,8 @@
 package com.example.traduccioncotorra;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +17,16 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
 
+import com.example.traduccioncotorra.Models.ModelLanguage;
+import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+
 public class TraduccionTexto extends Fragment {
 
     private EditText txtTextoIngresado;
@@ -28,6 +40,12 @@ public class TraduccionTexto extends Fragment {
     private String idiomaDestino = "Inglés";
     private boolean esFavorito = false;
 
+    //variables para traduccion
+    private TranslatorOptions translatorOptions;
+    private Translator translator;
+    private ProgressDialog progressDialog;
+    private ArrayList<ModelLanguage> languageArrayList;
+    private static final String TAG = "MAIN_TAG";
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -52,8 +70,23 @@ public class TraduccionTexto extends Fragment {
                         Toast.LENGTH_SHORT).show();
             }
         }
+        loadAvailableLanguages();
 
         return view;
+    }
+
+    private void loadAvailableLanguages() {
+        languageArrayList = new ArrayList<>();
+        List<String> languageCodeList = TranslateLanguage.getAllLanguages();
+        for (String languageCode: languageCodeList){
+            String languageTitle = new Locale(languageCode).getDisplayLanguage();
+            Log.d(TAG, "loadAvailableLanguages: languageCode: " + languageCode);
+            Log.d(TAG, "loadAvailableLanguages: languageTitle: " + languageTitle);
+
+            ModelLanguage modelLanguage = new ModelLanguage(languageCode,languageTitle);
+            languageArrayList.add(modelLanguage);
+
+        }
     }
 
     private void inicializarVistas(View view) {
@@ -63,6 +96,8 @@ public class TraduccionTexto extends Fragment {
         spinnerResultLanguage = view.findViewById(R.id.spinner_result_language);
         btnFavorite = view.findViewById(R.id.btn_favorite);
         menuButtonConfig = view.findViewById(R.id.menu_button_config);
+
+
     }
 
     private void configurarSpinners() {
