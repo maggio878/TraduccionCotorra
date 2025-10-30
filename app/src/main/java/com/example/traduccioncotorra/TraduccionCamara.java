@@ -1,64 +1,165 @@
 package com.example.traduccioncotorra;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.fragment.app.Fragment;
+import com.google.android.material.button.MaterialButton;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link TraduccionCamara#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class TraduccionCamara extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private EditText etTranslatedText;
+    private ImageView ivFavorite;
+    private AppCompatSpinner spinnerTargetLanguage;
+    private MaterialButton btnConfirmTranslation;
+    private ImageButton menuButtonConfig;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private String idiomaDestino = "Inglés";
+    private boolean esFavorito = false;
+    private String textoExtraido = "";
 
-    public TraduccionCamara() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment TraduccionCamara.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static TraduccionCamara newInstance(String param1, String param2) {
-        TraduccionCamara fragment = new TraduccionCamara();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    @Nullable
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_traduccion_camara, container, false);
+
+        // Inicializar vistas
+        inicializarVistas(view);
+
+        // Configurar spinner
+        configurarSpinner();
+
+        // Configurar listeners
+        configurarListeners();
+
+        return view;
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_traduccion_camara, container, false);
+    private void inicializarVistas(View view) {
+        etTranslatedText = view.findViewById(R.id.etTranslatedText);
+        ivFavorite = view.findViewById(R.id.ivFavorite);
+        spinnerTargetLanguage = view.findViewById(R.id.spinner_target_language);
+        btnConfirmTranslation = view.findViewById(R.id.btn_confirm_translation);
+        menuButtonConfig = view.findViewById(R.id.menu_button_config);
+    }
+
+    private void configurarSpinner() {
+        // Lista de idiomas disponibles
+        String[] idiomas = {"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
+
+        // Crear adapter para el spinner
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                idiomas
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        // Configurar spinner de idioma destino
+        spinnerTargetLanguage.setAdapter(adapter);
+        spinnerTargetLanguage.setSelection(1); // Inglés por defecto
+
+        // Listener para el spinner
+        spinnerTargetLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                idiomaDestino = idiomas[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void configurarListeners() {
+        // Listener para el botón de traducir (simula tomar foto y traducir)
+        btnConfirmTranslation.setOnClickListener(v -> {
+            simularCapturaDeCamara();
+        });
+
+        // Listener para el botón de favoritos
+        ivFavorite.setOnClickListener(v -> {
+            if (textoExtraido.isEmpty()) {
+                Toast.makeText(getContext(),
+                        "Primero captura una imagen para traducir",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            esFavorito = !esFavorito;
+            if (esFavorito) {
+                ivFavorite.setImageResource(R.drawable.favorite);
+                Toast.makeText(getContext(), "Agregado a favoritos", Toast.LENGTH_SHORT).show();
+            } else {
+                ivFavorite.setImageResource(R.drawable.ic_star_outline);
+                Toast.makeText(getContext(), "Removido de favoritos", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Listener para el botón de configuración
+        menuButtonConfig.setOnClickListener(v -> {
+            abrirConfiguracion();
+        });
+    }
+
+    private void simularCapturaDeCamara() {
+        // Mostrar mensaje de que se está procesando
+        Toast.makeText(getContext(), "Capturando imagen y extrayendo texto...",
+                Toast.LENGTH_SHORT).show();
+
+        // Simular extracción de texto con OCR
+        textoExtraido = simularOCR();
+
+        // Simular traducción
+        String textoTraducido = simularTraduccion(textoExtraido, idiomaDestino);
+
+        // Mostrar el texto traducido
+        etTranslatedText.setText(textoTraducido);
+
+        Toast.makeText(getContext(),
+                "Texto extraído y traducido a " + idiomaDestino,
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private String simularOCR() {
+
+        String[] textosSimulados = {
+                "Hello World",
+                "Welcome to our restaurant",
+                "Exit only",
+                "Open from 9 AM to 6 PM",
+                "Please wash your hands",
+                "No parking"
+        };
+
+        // Seleccionar un texto aleatorio
+        int indice = (int) (Math.random() * textosSimulados.length);
+        return textosSimulados[indice];
+    }
+
+    private String simularTraduccion(String texto, String idiomaDestino) {
+        // En producción, aquí usaríamos Google Translate API o similar
+        return "[" + idiomaDestino + "] " + texto + " (traducción simulada desde cámara)";
+    }
+
+    private void abrirConfiguracion() {
+        Configuracion configuracionFragment = new Configuracion();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, configuracionFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
