@@ -1,18 +1,25 @@
 package com.example.traduccioncotorra;
 
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.HistorialDAO;
+import com.example.traduccioncotorra.DB.UserDAO;
 import com.google.android.material.button.MaterialButton;
 
 public class Configuracion extends Fragment {
@@ -22,18 +29,35 @@ public class Configuracion extends Fragment {
     private SwitchCompat switchModoOffline;
     private SwitchCompat switchSonidos;
     private MaterialButton btnEliminarHistorial;
+    private MaterialButton btnVerHistorial;
+    private MaterialButton btnCambiarContrasena;
+    private MaterialButton btnEliminarCuenta;
     private MaterialButton btnInformacionApp;
     private MaterialButton btnCuenta;
+    private MaterialButton btnCerrarSesion;
 
     private String idiomaPrincipal = "Español";
     private boolean modoOffline = false;
     private boolean sonidosActivados = true;
+
+
+    private UserDAO userDAO;
+    private HistorialDAO historialDAO;
+    private int userId;
+
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_configuracion, container, false);
+
+        // Inicializar DAOs
+        userDAO = new UserDAO(requireContext());
+        historialDAO = new HistorialDAO(requireContext());
+
+        // Obtener userId actual
+        userId = userDAO.obtenerUserIdActual(requireContext());
 
         // Inicializar vistas
         inicializarVistas(view);
@@ -56,8 +80,12 @@ public class Configuracion extends Fragment {
         switchModoOffline = view.findViewById(R.id.switch_modo_offline);
         switchSonidos = view.findViewById(R.id.switch_sonidos);
         btnEliminarHistorial = view.findViewById(R.id.btn_eliminar_historial);
+        btnVerHistorial = view.findViewById(R.id.btn_ver_historial);
+        btnCambiarContrasena = view.findViewById(R.id.btn_cambiar_contrasena);
+        btnEliminarCuenta = view.findViewById(R.id.btn_eliminar_cuenta);
         btnInformacionApp = view.findViewById(R.id.btn_informacion_app);
         btnCuenta = view.findViewById(R.id.btn_cuenta);
+        btnCerrarSesion = view.findViewById(R.id.btn_cerrar_sesion);
 
     }
 
@@ -157,9 +185,23 @@ public class Configuracion extends Fragment {
 
     private void configurarBotones() {
 
+        btnVerHistorial.setOnClickListener(v -> {
+            abrirHistorial();
+        });
+
         // Botón eliminar historial
         btnEliminarHistorial.setOnClickListener(v -> {
-            mostrarDialogoConfirmacion();
+            mostrarDialogoEliminarHistorial();
+        });
+
+        // Botón cambiar contraseña
+        btnCambiarContrasena.setOnClickListener(v -> {
+            mostrarDialogoCambiarContrasena();
+        });
+
+        // Botón eliminar cuenta
+        btnEliminarCuenta.setOnClickListener(v -> {
+            mostrarDialogoEliminarCuenta();
         });
 
         // Botón información de la app
@@ -176,25 +218,179 @@ public class Configuracion extends Fragment {
 
         // Botón cuenta
         btnCuenta.setOnClickListener(v -> {
-            Toast.makeText(getContext(),
-                    "Configuración de cuenta\n" +
-                            "Usuario: cotorra\n" +
-                            "Email: cotorra@traduccion.com",
-                    Toast.LENGTH_LONG).show();
+            mostrarInformacionCuenta();
+        });
+
+        // Botón cerrar sesión
+        btnCerrarSesion.setOnClickListener(v -> {
+            cerrarSesion();
         });
     }
+    private void abrirHistorial() {
+        Historial historialFragment = new Historial();
 
-    private void mostrarDialogoConfirmacion() {
-        Toast.makeText(getContext(),
-                "¿Estás seguro de eliminar el historial?\n" +
-                        "Esta acción no se puede deshacer.",
-                Toast.LENGTH_LONG).show();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, historialFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+    private void mostrarDialogoEliminarHistorial() {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Eliminar historial")
+                .setMessage("¿Estás seguro de eliminar todo el historial de traducciones?\n" +
+                        "Esta acción no se puede deshacer.")
+                .setPositiveButton("Eliminar", (dialog, which) -> {
+                    int resultado = historialDAO.eliminarTodoHistorial(userId);
+                    if (resultado > 0) {
+                        Toast.makeText(getContext(),
+                                "Historial eliminado correctamente (" + resultado + " elementos)",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(),
+                                "No hay historial para eliminar",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+    private void mostrarDialogoCambiarContrasena() {
+        // Crear layout del diálogo
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
 
-        // Simular confirmación después de 2 segundos
-        new android.os.Handler().postDelayed(() -> {
-            Toast.makeText(getContext(),
-                    "Historial eliminado correctamente",
-                    Toast.LENGTH_SHORT).show();
-        }, 2000);
+        // Campo contraseña actual
+        final EditText etContrasenaActual = new EditText(getContext());
+        etContrasenaActual.setHint("Contraseña actual");
+        etContrasenaActual.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(etContrasenaActual);
+
+        // Campo nueva contraseña
+        final EditText etNuevaContrasena = new EditText(getContext());
+        etNuevaContrasena.setHint("Nueva contraseña");
+        etNuevaContrasena.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(etNuevaContrasena);
+
+        // Campo confirmar nueva contraseña
+        final EditText etConfirmarContrasena = new EditText(getContext());
+        etConfirmarContrasena.setHint("Confirmar nueva contraseña");
+        etConfirmarContrasena.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(etConfirmarContrasena);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Cambiar contraseña")
+                .setView(layout)
+                .setPositiveButton("Cambiar", (dialog, which) -> {
+                    String contrasenaActual = etContrasenaActual.getText().toString();
+                    String nuevaContrasena = etNuevaContrasena.getText().toString();
+                    String confirmarContrasena = etConfirmarContrasena.getText().toString();
+
+                    // Validaciones
+                    if (contrasenaActual.isEmpty() || nuevaContrasena.isEmpty() || confirmarContrasena.isEmpty()) {
+                        Toast.makeText(getContext(), "Todos los campos son requeridos", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    if (nuevaContrasena.length() < 6) {
+                        Toast.makeText(getContext(), "La nueva contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    if (!nuevaContrasena.equals(confirmarContrasena)) {
+                        Toast.makeText(getContext(), "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Intentar cambiar la contraseña
+                    boolean resultado = userDAO.cambiarContrasena(userId, contrasenaActual, nuevaContrasena);
+
+                    if (resultado) {
+                        Toast.makeText(getContext(), "Contraseña cambiada exitosamente", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(getContext(), "Error: La contraseña actual es incorrecta", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+    private void mostrarDialogoEliminarCuenta() {
+        // Crear layout del diálogo
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
+
+        final EditText etContrasena = new EditText(getContext());
+        etContrasena.setHint("Confirma tu contraseña");
+        etContrasena.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(etContrasena);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Eliminar cuenta")
+                .setMessage("⚠️ ADVERTENCIA ⚠️\n\nEsta acción eliminará permanentemente tu cuenta y todos tus datos.\n\n" +
+                        "Esta acción NO se puede deshacer.\n\nPara continuar, ingresa tu contraseña:")
+                .setView(layout)
+                .setPositiveButton("Eliminar permanentemente", (dialog, which) -> {
+                    String contrasena = etContrasena.getText().toString();
+
+                    if (contrasena.isEmpty()) {
+                        Toast.makeText(getContext(), "Debes ingresar tu contraseña", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Intentar eliminar la cuenta
+                    boolean resultado = userDAO.eliminarUsuarioPermanente(userId, contrasena);
+
+                    if (resultado) {
+                        Toast.makeText(getContext(), "Cuenta eliminada exitosamente", Toast.LENGTH_SHORT).show();
+
+                        // Cerrar sesión y volver al login
+                        userDAO.cerrarSesion(requireContext());
+                        Intent intent = new Intent(getActivity(), MainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        requireActivity().finish();
+                    } else {
+                        Toast.makeText(getContext(), "Error: Contraseña incorrecta", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void mostrarInformacionCuenta() {
+        if (userId != -1) {
+            com.example.traduccioncotorra.Models.Usuario usuario = userDAO.obtenerUsuarioPorId(userId);
+            if (usuario != null) {
+                Toast.makeText(getContext(),
+                        "Mi Cuenta\n\n" +
+                                "Usuario: " + usuario.getUsername() + "\n" +
+                                "Email: " + usuario.getEmail() + "\n" +
+                                "Nombre: " + usuario.getFullName() + "\n" +
+                                "Miembro desde: " + usuario.getCreatedDate(),
+                        Toast.LENGTH_LONG).show();
+            }
+        } else {
+            Toast.makeText(getContext(), "Error al obtener información de la cuenta", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void cerrarSesion() {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Cerrar sesión")
+                .setMessage("¿Estás seguro que deseas cerrar sesión?")
+                .setPositiveButton("Sí, cerrar sesión", (dialog, which) -> {
+                    userDAO.cerrarSesion(requireContext());
+
+                    Toast.makeText(getContext(), "Sesión cerrada", Toast.LENGTH_SHORT).show();
+
+                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    requireActivity().finish();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 }

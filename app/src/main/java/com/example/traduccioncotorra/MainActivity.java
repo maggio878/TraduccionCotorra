@@ -152,6 +152,10 @@ public class MainActivity extends AppCompatActivity {
 
             if (user != null) {
                 Log.d("LOGIN", "Usuario válido: " + user.getFullName());
+
+                // ⭐ NUEVO: Guardar el userId en SharedPreferences
+                userDAO.guardarUserIdActual(this, user.getUserId());
+
                 return true;
             }
 

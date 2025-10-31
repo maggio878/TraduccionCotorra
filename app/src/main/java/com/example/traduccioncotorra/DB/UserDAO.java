@@ -264,4 +264,119 @@ public class UserDAO {
 
         return filasActualizadas;
     }
+
+    public boolean cambiarContrasena(int userId, String oldPassword, String newPassword) {
+        boolean resultado = false;
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            // Primero validar que la contraseña actual sea correcta
+            String query = "SELECT Password FROM " + TABLE_NAME + " WHERE UserId = ?";
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String passwordActual = cursor.getString(cursor.getColumnIndexOrThrow("Password"));
+
+                // Verificar que la contraseña actual coincida
+                if (passwordActual.equals(oldPassword)) {
+                    ContentValues valores = new ContentValues();
+                    valores.put("Password", newPassword);
+
+                    int filasActualizadas = managerDB.actualizar(
+                            TABLE_NAME,
+                            valores,
+                            "UserId = ?",
+                            new String[]{String.valueOf(userId)}
+                    );
+
+                    resultado = filasActualizadas > 0;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Elimina permanentemente un usuario de la base de datos
+     * @param userId ID del usuario a eliminar
+     * @param password Contraseña del usuario (para confirmar)
+     * @return true si se eliminó correctamente, false en caso contrario
+     */
+    public boolean eliminarUsuarioPermanente(int userId, String password) {
+        boolean resultado = false;
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            // Validar contraseña antes de eliminar
+            String query = "SELECT Password FROM " + TABLE_NAME + " WHERE UserId = ?";
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String passwordActual = cursor.getString(cursor.getColumnIndexOrThrow("Password"));
+
+                if (passwordActual.equals(password)) {
+                    // Eliminar el usuario permanentemente
+                    int filasEliminadas = managerDB.eliminar(
+                            TABLE_NAME,
+                            "UserId = ?",
+                            new String[]{String.valueOf(userId)}
+                    );
+
+                    resultado = filasEliminadas > 0;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Obtiene el ID del usuario actual desde SharedPreferences
+     * Este método asume que guardas el userId cuando el usuario inicia sesión
+     */
+    public int obtenerUserIdActual(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+        return prefs.getInt("userId", -1);
+    }
+
+    /**
+     * Guarda el userId en SharedPreferences al hacer login
+     */
+    public void guardarUserIdActual(Context context, int userId) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("userId", userId);
+        editor.apply();
+    }
+
+    /**
+     * Cierra la sesión del usuario
+     */
+    public void cerrarSesion(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
+    }
 }

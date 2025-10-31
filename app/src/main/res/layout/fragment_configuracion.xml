@@ -205,16 +205,26 @@
                 android:background="#CCCCCC"
                 android:layout_marginVertical="8dp"/>
 
-            <!-- Sección: Datos -->
+            <!-- Sección: Historial -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="DATOS"
+                android:text="HISTORIAL"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/blue_menu"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="12dp"/>
+
+            <!-- Botón ver historial -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ver_historial"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver historial de traducciones"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/blue_menu"
+                android:layout_marginBottom="16dp"/>
 
             <!-- Botón eliminar historial -->
             <com.google.android.material.button.MaterialButton
@@ -224,6 +234,64 @@
                 android:text="Eliminar historial de traducciones"
                 android:textColor="@android:color/white"
                 app:backgroundTint="#FF5722"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Separador -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#CCCCCC"
+                android:layout_marginVertical="8dp"/>
+
+            <!-- Sección: Cuenta -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CUENTA"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/blue_menu"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Botón cambiar contraseña -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cambiar_contrasena"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cambiar contraseña"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/green_menu"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Botón cuenta -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cuenta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Mi cuenta"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/blue_menu"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Botón cerrar sesión -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cerrar_sesion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cerrar sesión"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#FF9800"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Botón eliminar cuenta -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_eliminar_cuenta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️ Eliminar cuenta permanentemente"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#D32F2F"
                 android:layout_marginBottom="24dp"/>
 
             <!-- Separador -->
@@ -250,16 +318,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Información de la aplicación"
-                android:textColor="@android:color/white"
-                app:backgroundTint="@color/blue_menu"
-                android:layout_marginBottom="16dp"/>
-
-            <!-- Botón cuenta -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_cuenta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Mi cuenta"
                 android:textColor="@android:color/white"
                 app:backgroundTint="@color/blue_menu"
                 android:layout_marginBottom="32dp"/>
