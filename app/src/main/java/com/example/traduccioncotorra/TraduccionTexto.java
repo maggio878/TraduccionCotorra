@@ -2,6 +2,8 @@ package com.example.traduccioncotorra;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,7 +20,13 @@ import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
 
 import com.example.traduccioncotorra.Models.ModelLanguage;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.common.model.RemoteModelManager;
 import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.TranslateRemoteModel;
+import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
 
@@ -36,16 +44,19 @@ public class TraduccionTexto extends Fragment {
     private ImageButton btnFavorite;
     private ImageButton menuButtonConfig;
 
-    private String idiomaOrigen = "Español";
-    private String idiomaDestino = "Inglés";
+    private String sourceLanguageCode = TranslateLanguage.SPANISH; // Código de idioma origen
+    private String targetLanguageCode = TranslateLanguage.ENGLISH; // Código de idioma destino
+    private String sourceLanguageTitle = "Español";
+    private String targetLanguageTitle = "Inglés";
     private boolean esFavorito = false;
 
-    //variables para traduccion
+    // Variables para traducción
     private TranslatorOptions translatorOptions;
     private Translator translator;
     private ProgressDialog progressDialog;
     private ArrayList<ModelLanguage> languageArrayList;
-    private static final String TAG = "MAIN_TAG";
+    private static final String TAG = "TRADUCCION_TAG";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -53,8 +64,16 @@ public class TraduccionTexto extends Fragment {
         // Inflar el layout del fragment
         View view = inflater.inflate(R.layout.fragment_traduccion_texto, container, false);
 
+        // Inicializar progress dialog
+        progressDialog = new ProgressDialog(getContext());
+        progressDialog.setTitle("Por favor espere");
+        progressDialog.setCanceledOnTouchOutside(false);
+
         // Inicializar vistas
         inicializarVistas(view);
+
+        // Cargar idiomas disponibles
+        loadAvailableLanguages();
 
         // Configurar spinners
         configurarSpinners();
@@ -70,7 +89,6 @@ public class TraduccionTexto extends Fragment {
                         Toast.LENGTH_SHORT).show();
             }
         }
-        loadAvailableLanguages();
 
         return view;
     }
@@ -78,14 +96,14 @@ public class TraduccionTexto extends Fragment {
     private void loadAvailableLanguages() {
         languageArrayList = new ArrayList<>();
         List<String> languageCodeList = TranslateLanguage.getAllLanguages();
-        for (String languageCode: languageCodeList){
+
+        for (String languageCode : languageCodeList) {
             String languageTitle = new Locale(languageCode).getDisplayLanguage();
             Log.d(TAG, "loadAvailableLanguages: languageCode: " + languageCode);
             Log.d(TAG, "loadAvailableLanguages: languageTitle: " + languageTitle);
 
-            ModelLanguage modelLanguage = new ModelLanguage(languageCode,languageTitle);
+            ModelLanguage modelLanguage = new ModelLanguage(languageCode, languageTitle);
             languageArrayList.add(modelLanguage);
-
         }
     }
 
@@ -96,36 +114,51 @@ public class TraduccionTexto extends Fragment {
         spinnerResultLanguage = view.findViewById(R.id.spinner_result_language);
         btnFavorite = view.findViewById(R.id.btn_favorite);
         menuButtonConfig = view.findViewById(R.id.menu_button_config);
-
-
     }
 
     private void configurarSpinners() {
-        // Lista de idiomas disponibles
-        String[] idiomas = {"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
-
-        // Crear adapter para los spinners
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+        // Crear adapter personalizado para mostrar los nombres de idiomas
+        ArrayAdapter<ModelLanguage> adapterSource = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
-                idiomas
+                languageArrayList
         );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        adapterSource.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        ArrayAdapter<ModelLanguage> adapterTarget = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                languageArrayList
+        );
+        adapterTarget.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         // Configurar spinner de idioma origen
-        spinnerSourceLanguage.setAdapter(adapter);
-        spinnerSourceLanguage.setSelection(0); // Español por defecto
+        spinnerSourceLanguage.setAdapter(adapterSource);
 
         // Configurar spinner de idioma destino
-        spinnerResultLanguage.setAdapter(adapter);
-        spinnerResultLanguage.setSelection(1); // Inglés por defecto
+        spinnerResultLanguage.setAdapter(adapterTarget);
+
+        // Establecer selección por defecto (Español -> Inglés)
+        for (int i = 0; i < languageArrayList.size(); i++) {
+            if (languageArrayList.get(i).getLanguageCode().equals(TranslateLanguage.SPANISH)) {
+                spinnerSourceLanguage.setSelection(i);
+            }
+            if (languageArrayList.get(i).getLanguageCode().equals(TranslateLanguage.ENGLISH)) {
+                spinnerResultLanguage.setSelection(i);
+            }
+        }
 
         // Listeners para los spinners
         spinnerSourceLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                idiomaOrigen = idiomas[position];
-                traducirTexto();
+                ModelLanguage selectedLanguage = (ModelLanguage) parent.getItemAtPosition(position);
+                sourceLanguageCode = selectedLanguage.getLanguageCode();
+                sourceLanguageTitle = selectedLanguage.getLanguageTitle();
+                Log.d(TAG, "onItemSelected Source: " + sourceLanguageCode);
+
+                // Crear nuevo traductor con los idiomas actualizados
+                crearTraductor();
             }
 
             @Override
@@ -135,8 +168,13 @@ public class TraduccionTexto extends Fragment {
         spinnerResultLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                idiomaDestino = idiomas[position];
-                traducirTexto();
+                ModelLanguage selectedLanguage = (ModelLanguage) parent.getItemAtPosition(position);
+                targetLanguageCode = selectedLanguage.getLanguageCode();
+                targetLanguageTitle = selectedLanguage.getLanguageTitle();
+                Log.d(TAG, "onItemSelected Target: " + targetLanguageCode);
+
+                // Crear nuevo traductor con los idiomas actualizados
+                crearTraductor();
             }
 
             @Override
@@ -149,22 +187,98 @@ public class TraduccionTexto extends Fragment {
         btnFavorite.setOnClickListener(v -> {
             esFavorito = !esFavorito;
             if (esFavorito) {
-                btnFavorite.setImageResource(R.drawable.favorite); // Asume que tienes este drawable
+                btnFavorite.setImageResource(R.drawable.favorite);
                 Toast.makeText(getContext(), "Agregado a favoritos", Toast.LENGTH_SHORT).show();
             } else {
                 btnFavorite.setImageResource(R.drawable.ic_star_outline);
                 Toast.makeText(getContext(), "Removido de favoritos", Toast.LENGTH_SHORT).show();
             }
         });
+
         menuButtonConfig.setOnClickListener(v -> {
             abrirConfiguracion();
         });
 
-        txtTextoIngresado.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                traducirTexto();
+        // TextWatcher para traducir en tiempo real mientras el usuario escribe
+        txtTextoIngresado.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Traducir después de que el usuario termine de escribir
+                txtvTextoTraducido.setText(""); // Limpiar traducción anterior
+
+                if (s.toString().isEmpty()) {
+                    txtvTextoTraducido.setText("");
+                } else {
+                    traducirTexto();
+                }
             }
         });
+    }
+
+    private void crearTraductor() {
+        Log.d(TAG, "crearTraductor: Creando traductor de " + sourceLanguageCode + " a " + targetLanguageCode);
+
+        // Validar que los idiomas sean diferentes
+        if (sourceLanguageCode.equals(targetLanguageCode)) {
+            Toast.makeText(getContext(),
+                    "Por favor seleccione idiomas diferentes",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Configurar opciones del traductor
+        translatorOptions = new TranslatorOptions.Builder()
+                .setSourceLanguage(sourceLanguageCode)
+                .setTargetLanguage(targetLanguageCode)
+                .build();
+
+        // Crear traductor
+        translator = Translation.getClient(translatorOptions);
+
+        // Descargar modelo si es necesario
+        descargarModeloIdioma();
+    }
+
+    private void descargarModeloIdioma() {
+        progressDialog.setMessage("Descargando modelo de idioma...");
+        progressDialog.show();
+
+        DownloadConditions conditions = new DownloadConditions.Builder()
+                .requireWifi() // Requiere WiFi para descargar (opcional)
+                .build();
+
+        translator.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        progressDialog.dismiss();
+                        Log.d(TAG, "onSuccess: Modelo descargado exitosamente");
+                        Toast.makeText(getContext(),
+                                "Modelo de idioma listo",
+                                Toast.LENGTH_SHORT).show();
+
+                        // Traducir si hay texto
+                        if (!txtTextoIngresado.getText().toString().isEmpty()) {
+                            traducirTexto();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        progressDialog.dismiss();
+                        Log.e(TAG, "onFailure: Error al descargar modelo", e);
+                        Toast.makeText(getContext(),
+                                "Error al descargar modelo: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void traducirTexto() {
@@ -175,24 +289,40 @@ public class TraduccionTexto extends Fragment {
             return;
         }
 
-        // Validar que los idiomas sean diferentes
-        if (idiomaOrigen.equals(idiomaDestino)) {
-            txtvTextoTraducido.setText(textoOriginal);
-            Toast.makeText(getContext(),
-                    "Los idiomas de origen y destino son iguales",
-                    Toast.LENGTH_SHORT).show();
+        // Validar que el traductor esté inicializado
+        if (translator == null) {
+            crearTraductor();
             return;
         }
 
-        // Simulación de traducción (sin API real)
-        String textoTraducido = simularTraduccion(textoOriginal, idiomaOrigen, idiomaDestino);
-        txtvTextoTraducido.setText(textoTraducido);
+        // Validar que los idiomas sean diferentes
+        if (sourceLanguageCode.equals(targetLanguageCode)) {
+            txtvTextoTraducido.setText(textoOriginal);
+            return;
+        }
+
+        Log.d(TAG, "traducirTexto: Traduciendo de " + sourceLanguageCode + " a " + targetLanguageCode);
+
+        // Realizar traducción con ML Kit
+        translator.translate(textoOriginal)
+                .addOnSuccessListener(new OnSuccessListener<String>() {
+                    @Override
+                    public void onSuccess(String textoTraducido) {
+                        Log.d(TAG, "onSuccess: Texto traducido: " + textoTraducido);
+                        txtvTextoTraducido.setText(textoTraducido);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: Error al traducir", e);
+                        Toast.makeText(getContext(),
+                                "Error al traducir: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    private String simularTraduccion(String texto, String origen, String destino) {
-
-        return "[" + destino + "] " + texto + " (traducción simulada)";
-    }
     private void abrirConfiguracion() {
         // Navegar al fragment de configuración
         Configuracion configuracionFragment = new Configuracion();
@@ -200,7 +330,17 @@ public class TraduccionTexto extends Fragment {
         getParentFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, configuracionFragment)
-                .addToBackStack(null) // Permite volver atrás
+                .addToBackStack(null)
                 .commit();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Cerrar el traductor para liberar recursos
+        if (translator != null) {
+            translator.close();
+            translator = null;
+        }
     }
 }
