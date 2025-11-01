@@ -14,7 +14,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.google.android.material.button.MaterialButton;
+import java.util.List;
+
 
 public class TraduccionCamara extends Fragment {
 
@@ -28,11 +31,19 @@ public class TraduccionCamara extends Fragment {
     private boolean esFavorito = false;
     private String textoExtraido = "";
 
+    private LanguageDAO languageDAO;
+    private List<LanguageDAO.Language> idiomasDisponibles;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_traduccion_camara, container, false);
+
+        // Inicializar DAO
+        languageDAO = new LanguageDAO(requireContext());
+
+        // Cargar idiomas de la BD
+        cargarIdiomasDesdeDB();
 
         // Inicializar vistas
         inicializarVistas(view);
@@ -45,7 +56,15 @@ public class TraduccionCamara extends Fragment {
 
         return view;
     }
+    private void cargarIdiomasDesdeDB() {
+        idiomasDisponibles = languageDAO.obtenerIdiomasActivos();
 
+        if (idiomasDisponibles.isEmpty()) {
+            Toast.makeText(getContext(),
+                    "⚠️ No hay idiomas configurados",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
     private void inicializarVistas(View view) {
         etTranslatedText = view.findViewById(R.id.etTranslatedText);
         ivFavorite = view.findViewById(R.id.ivFavorite);
@@ -55,33 +74,60 @@ public class TraduccionCamara extends Fragment {
     }
 
     private void configurarSpinner() {
-        // Lista de idiomas disponibles
-        String[] idiomas = {"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
+
+        if (idiomasDisponibles.isEmpty()) {
+            spinnerTargetLanguage.setEnabled(false);
+            return;
+        }
+
+        // Crear array de nombres de idiomas
+        String[] nombresIdiomas = new String[idiomasDisponibles.size()];
+        for (int i = 0; i < idiomasDisponibles.size(); i++) {
+            nombresIdiomas[i] = idiomasDisponibles.get(i).name;
+        }
 
         // Crear adapter para el spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
-                idiomas
+                nombresIdiomas
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         // Configurar spinner de idioma destino
         spinnerTargetLanguage.setAdapter(adapter);
-        spinnerTargetLanguage.setSelection(1); // Inglés por defecto
+
+        // Buscar posición de "Inglés" y seleccionarlo por defecto
+        int posicionIngles = buscarPosicionIdioma("Inglés");
+        if (posicionIngles != -1) {
+            spinnerTargetLanguage.setSelection(posicionIngles);
+            idiomaDestino = "Inglés";
+        } else if (nombresIdiomas.length > 0) {
+            spinnerTargetLanguage.setSelection(0);
+            idiomaDestino = nombresIdiomas[0];
+        }
 
         // Listener para el spinner
         spinnerTargetLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                idiomaDestino = idiomas[position];
+                if (position < idiomasDisponibles.size()) {
+                    idiomaDestino = idiomasDisponibles.get(position).name;
+                }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
-
+    private int buscarPosicionIdioma(String nombreIdioma) {
+        for (int i = 0; i < idiomasDisponibles.size(); i++) {
+            if (idiomasDisponibles.get(i).name.equalsIgnoreCase(nombreIdioma)) {
+                return i;
+            }
+        }
+        return -1;
+    }
     private void configurarListeners() {
         // Listener para el botón de traducir (simula tomar foto y traducir)
         btnConfirmTranslation.setOnClickListener(v -> {

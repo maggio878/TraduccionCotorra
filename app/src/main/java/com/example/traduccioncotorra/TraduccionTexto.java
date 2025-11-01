@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.LanguageDAO;
+import java.util.List;
 
 public class TraduccionTexto extends Fragment {
 
@@ -28,12 +30,22 @@ public class TraduccionTexto extends Fragment {
     private String idiomaDestino = "Inglés";
     private boolean esFavorito = false;
 
+    // DAO para obtener idiomas
+    private LanguageDAO languageDAO;
+    private List<LanguageDAO.Language> idiomasDisponibles;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         // Inflar el layout del fragment
         View view = inflater.inflate(R.layout.fragment_traduccion_texto, container, false);
+
+        // Inicializar DAO
+        languageDAO = new LanguageDAO(requireContext());
+
+        // Cargar idiomas de la BD
+        cargarIdiomasDesdeDB();
 
         // Inicializar vistas
         inicializarVistas(view);
@@ -55,6 +67,17 @@ public class TraduccionTexto extends Fragment {
 
         return view;
     }
+    private void cargarIdiomasDesdeDB() {
+        // Obtener solo idiomas activos
+        idiomasDisponibles = languageDAO.obtenerIdiomasActivos();
+
+        // Si no hay idiomas en la BD, mostrar mensaje
+        if (idiomasDisponibles.isEmpty()) {
+            Toast.makeText(getContext(),
+                    "⚠️ No hay idiomas configurados. Ve a Configuración → Administrar Catálogos",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
 
     private void inicializarVistas(View view) {
         txtTextoIngresado = view.findViewById(R.id.txt_TextoIngresado);
@@ -66,31 +89,61 @@ public class TraduccionTexto extends Fragment {
     }
 
     private void configurarSpinners() {
-        // Lista de idiomas disponibles
-        String[] idiomas = {"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
+        if (idiomasDisponibles.isEmpty()) {
+            // Si no hay idiomas, deshabilitar spinners
+            spinnerSourceLanguage.setEnabled(false);
+            spinnerResultLanguage.setEnabled(false);
+            return;
+        }
+
+        // Crear array de nombres de idiomas
+        String[] nombresIdiomas = new String[idiomasDisponibles.size()];
+        for (int i = 0; i < idiomasDisponibles.size(); i++) {
+            nombresIdiomas[i] = idiomasDisponibles.get(i).name;
+        }
 
         // Crear adapter para los spinners
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
-                idiomas
+                nombresIdiomas
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         // Configurar spinner de idioma origen
         spinnerSourceLanguage.setAdapter(adapter);
-        spinnerSourceLanguage.setSelection(0); // Español por defecto
+
+        // Buscar posición de "Español" y seleccionarlo por defecto
+        int posicionEspanol = buscarPosicionIdioma("Español");
+        if (posicionEspanol != -1) {
+            spinnerSourceLanguage.setSelection(posicionEspanol);
+            idiomaOrigen = "Español";
+        } else if (nombresIdiomas.length > 0) {
+            spinnerSourceLanguage.setSelection(0);
+            idiomaOrigen = nombresIdiomas[0];
+        }
 
         // Configurar spinner de idioma destino
         spinnerResultLanguage.setAdapter(adapter);
-        spinnerResultLanguage.setSelection(1); // Inglés por defecto
+
+        // Buscar posición de "Inglés" y seleccionarlo por defecto
+        int posicionIngles = buscarPosicionIdioma("Inglés");
+        if (posicionIngles != -1) {
+            spinnerResultLanguage.setSelection(posicionIngles);
+            idiomaDestino = "Inglés";
+        } else if (nombresIdiomas.length > 1) {
+            spinnerResultLanguage.setSelection(1);
+            idiomaDestino = nombresIdiomas[1];
+        }
 
         // Listeners para los spinners
         spinnerSourceLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                idiomaOrigen = idiomas[position];
-                traducirTexto();
+                if (position < idiomasDisponibles.size()) {
+                    idiomaOrigen = idiomasDisponibles.get(position).name;
+                    traducirTexto();
+                }
             }
 
             @Override
@@ -100,13 +153,43 @@ public class TraduccionTexto extends Fragment {
         spinnerResultLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                idiomaDestino = idiomas[position];
-                traducirTexto();
+                if (position < idiomasDisponibles.size()) {
+                    idiomaDestino = idiomasDisponibles.get(position).name;
+                    traducirTexto();
+                }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
+    }
+
+     // Busca la posición de un idioma por nombre
+
+    private int buscarPosicionIdioma(String nombreIdioma) {
+        for (int i = 0; i < idiomasDisponibles.size(); i++) {
+            if (idiomasDisponibles.get(i).name.equalsIgnoreCase(nombreIdioma)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    //Obtiene el ID del idioma seleccionado (útil para guardar en BD)
+    private int obtenerIdIdiomaOrigen() {
+        for (LanguageDAO.Language idioma : idiomasDisponibles) {
+            if (idioma.name.equals(idiomaOrigen)) {
+                return idioma.languageId;
+            }
+        }
+        return -1;
+    }
+    private int obtenerIdIdiomaDestino() {
+        for (LanguageDAO.Language idioma : idiomasDisponibles) {
+            if (idioma.name.equals(idiomaDestino)) {
+                return idioma.languageId;
+            }
+        }
+        return -1;
     }
 
     private void configurarListeners() {
