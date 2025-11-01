@@ -301,6 +301,34 @@
                 android:background="#CCCCCC"
                 android:layout_marginVertical="8dp"/>
 
+            <!-- Sección: Administración -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ADMINISTRACIÓN"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/blue_menu"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Botón administrar catálogos -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_admin_catalogos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚙️ Administrar Catálogos"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#9C27B0"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Separador -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#CCCCCC"
+                android:layout_marginVertical="8dp"/>
+
             <!-- Sección: Acerca de -->
             <TextView
                 android:layout_width="match_parent"

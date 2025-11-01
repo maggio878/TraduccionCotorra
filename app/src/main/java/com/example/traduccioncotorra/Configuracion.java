@@ -20,7 +20,9 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
+import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.google.android.material.button.MaterialButton;
+import java.util.List;
 
 public class Configuracion extends Fragment {
 
@@ -35,6 +37,7 @@ public class Configuracion extends Fragment {
     private MaterialButton btnInformacionApp;
     private MaterialButton btnCuenta;
     private MaterialButton btnCerrarSesion;
+    private MaterialButton btnAdminCatalogos;
 
     private String idiomaPrincipal = "Español";
     private boolean modoOffline = false;
@@ -43,6 +46,7 @@ public class Configuracion extends Fragment {
 
     private UserDAO userDAO;
     private HistorialDAO historialDAO;
+    private LanguageDAO languageDAO;
     private int userId;
 
 
@@ -55,6 +59,7 @@ public class Configuracion extends Fragment {
         // Inicializar DAOs
         userDAO = new UserDAO(requireContext());
         historialDAO = new HistorialDAO(requireContext());
+        languageDAO = new LanguageDAO(requireContext());
 
         // Obtener userId actual
         userId = userDAO.obtenerUserIdActual(requireContext());
@@ -86,12 +91,28 @@ public class Configuracion extends Fragment {
         btnInformacionApp = view.findViewById(R.id.btn_informacion_app);
         btnCuenta = view.findViewById(R.id.btn_cuenta);
         btnCerrarSesion = view.findViewById(R.id.btn_cerrar_sesion);
+        btnAdminCatalogos = view.findViewById(R.id.btn_admin_catalogos);
 
     }
 
     private void configurarSpinners() {
-        // Lista de idiomas disponibles
-        String[] idiomas = {"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
+        // Obtener idiomas de la base de datos
+        List<LanguageDAO.Language> idiomasDB = languageDAO.obtenerIdiomasActivos();
+
+        // Si no hay idiomas, usar array por defecto
+        String[] idiomas;
+        if (idiomasDB.isEmpty()) {
+            idiomas = new String[]{"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
+            Toast.makeText(getContext(),
+                    "⚠️ No hay idiomas en BD. Usando idiomas por defecto",
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            // Convertir lista de idiomas a array
+            idiomas = new String[idiomasDB.size()];
+            for (int i = 0; i < idiomasDB.size(); i++) {
+                idiomas[i] = idiomasDB.get(i).name;
+            }
+        }
 
         // Adapter para idioma principal
         ArrayAdapter<String> adapterPrincipal = new ArrayAdapter<>(
@@ -101,7 +122,7 @@ public class Configuracion extends Fragment {
         );
         adapterPrincipal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerIdiomaPrincipal.setAdapter(adapterPrincipal);
-        spinnerIdiomaPrincipal.setSelection(0); // Español por defecto
+        spinnerIdiomaPrincipal.setSelection(0);
 
         // Adapter para idiomas preferidos
         ArrayAdapter<String> adapterPreferidos = new ArrayAdapter<>(
@@ -111,7 +132,7 @@ public class Configuracion extends Fragment {
         );
         adapterPreferidos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerIdiomasPreferidos.setAdapter(adapterPreferidos);
-        spinnerIdiomasPreferidos.setSelection(1); // Inglés por defecto
+        spinnerIdiomasPreferidos.setSelection(1);
 
         // Listener para idioma principal
         spinnerIdiomaPrincipal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -121,7 +142,6 @@ public class Configuracion extends Fragment {
                 Toast.makeText(getContext(),
                         "Idioma principal: " + idiomaPrincipal,
                         Toast.LENGTH_SHORT).show();
-                // Aquí guardaríamos en base de datos
             }
 
             @Override
@@ -224,6 +244,9 @@ public class Configuracion extends Fragment {
         // Botón cerrar sesión
         btnCerrarSesion.setOnClickListener(v -> {
             cerrarSesion();
+        });
+        btnAdminCatalogos.setOnClickListener(v -> {
+            abrirAdminCatalogos();
         });
     }
     private void abrirHistorial() {
@@ -392,5 +415,14 @@ public class Configuracion extends Fragment {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+    private void abrirAdminCatalogos() {
+        AdminCatalogos adminCatalogosFragment = new AdminCatalogos();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, adminCatalogosFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
