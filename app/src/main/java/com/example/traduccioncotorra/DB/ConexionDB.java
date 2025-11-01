@@ -116,6 +116,22 @@ public class ConexionDB extends SQLiteOpenHelper {
                     "FOREIGN KEY (UserId) REFERENCES User(UserId)" +
                     ")");
 
+            // Tabla UserConfiguration
+            db.execSQL("CREATE TABLE IF NOT EXISTS UserConfiguration (" +
+                    "ConfigurationId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "UserId INTEGER NOT NULL UNIQUE, " +
+                    "PrimaryLanguageId INTEGER NOT NULL, " +
+                    "Theme TEXT DEFAULT 'light', " +
+                    "Sounds_Enable INTEGER DEFAULT 1, " +
+                    "OfflineEnable INTEGER DEFAULT 0, " +
+                    "NotificationsEnable INTEGER DEFAULT 1, " +
+                    "FontSize INTEGER DEFAULT 14, " +
+                    "LastUpdated TEXT DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (UserId) REFERENCES User(UserId), " +
+                    "FOREIGN KEY (PrimaryLanguageId) REFERENCES Language(Language_Id)" +
+                    ")");
+
+
             // Insertar datos iniciales en Language
             db.execSQL("INSERT INTO Language (Name, Code, IsActive) VALUES " +
                     "('Español', 'es', 1), " +

@@ -15,6 +15,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.example.traduccioncotorra.DB.UserDAO;
 import com.example.traduccioncotorra.Models.Usuario;
+import com.example.traduccioncotorra.DB.UserConfigurationDAO;
 
 public class RegistroActivity extends AppCompatActivity {
 
@@ -201,6 +202,14 @@ public class RegistroActivity extends AppCompatActivity {
             // Registro exitoso
             Toast.makeText(this, "¡Registro exitoso! Bienvenido " + nombre,
                     Toast.LENGTH_LONG).show();
+
+            // ⭐ NUEVO: Crear configuración por defecto para el usuario
+            UserConfigurationDAO configDAO = new UserConfigurationDAO(this);
+            int userId = (int) resultado; // El ID del usuario recién insertado
+
+            // Crear configuración con idioma español (ID 1) por defecto
+            configDAO.crearConfiguracionPorDefecto(userId, 1);
+
 
             // Volver al login después del registro exitoso
             Intent intent = new Intent(RegistroActivity.this, MainActivity.class);

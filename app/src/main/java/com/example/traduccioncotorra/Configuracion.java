@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
 import com.example.traduccioncotorra.DB.LanguageDAO;
+import com.example.traduccioncotorra.DB.UserConfigurationDAO;
 import com.google.android.material.button.MaterialButton;
 import java.util.List;
 
@@ -47,8 +48,11 @@ public class Configuracion extends Fragment {
     private UserDAO userDAO;
     private HistorialDAO historialDAO;
     private LanguageDAO languageDAO;
+    private UserConfigurationDAO userConfigDAO;
     private int userId;
 
+    // Configuración actual del usuario
+    private UserConfigurationDAO.UserConfiguration configActual;
 
     @Nullable
     @Override
@@ -60,6 +64,7 @@ public class Configuracion extends Fragment {
         userDAO = new UserDAO(requireContext());
         historialDAO = new HistorialDAO(requireContext());
         languageDAO = new LanguageDAO(requireContext());
+        userConfigDAO = new UserConfigurationDAO(requireContext());
 
         // Obtener userId actual
         userId = userDAO.obtenerUserIdActual(requireContext());
@@ -76,7 +81,56 @@ public class Configuracion extends Fragment {
         // Configurar botones
         configurarBotones();
 
+        // Cargar configuración del usuario
+        cargarConfiguracion();
+
         return view;
+    }
+    private void cargarConfiguracion() {
+        if (userId == -1) {
+            Toast.makeText(getContext(), "Error: Usuario no identificado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Obtener configuración, o crear una por defecto
+        // Usamos el ID del primer idioma disponible como defecto
+        int idiomaDefecto = 1; // Por defecto Español (asumiendo que es el ID 1)
+        List<LanguageDAO.Language> idiomas = languageDAO.obtenerIdiomasActivos();
+        if (!idiomas.isEmpty()) {
+            idiomaDefecto = idiomas.get(0).languageId;
+        }
+
+        configActual = userConfigDAO.obtenerOCrearConfiguracion(userId, idiomaDefecto);
+
+        if (configActual != null) {
+            // Aplicar configuración cargada
+            aplicarConfiguracion();
+        }
+    }
+
+    private void aplicarConfiguracion() {
+        // Aplicar estados de los switches
+        modoOffline = configActual.offlineEnable == 1;
+        sonidosActivados = configActual.soundsEnable == 1;
+        List<LanguageDAO.Language> idiomas = languageDAO.obtenerIdiomasActivos();
+
+        // Actualizar UI si los componentes ya están inicializados
+        if (switchModoOffline != null) {
+            switchModoOffline.setChecked(modoOffline);
+        }
+
+        if (switchSonidos != null) {
+            switchSonidos.setChecked(sonidosActivados);
+        }
+        // Seleccionar el idioma principal guardado
+        if (spinnerIdiomaPrincipal != null && !idiomas.isEmpty()) {
+            for (int i = 0; i < idiomas.size(); i++) {
+                if (idiomas.get(i).languageId == configActual.primaryLanguageId) {
+                    spinnerIdiomaPrincipal.setSelection(i);
+                    break;
+                }
+            }
+        }
     }
 
     private void inicializarVistas(View view) {
@@ -122,7 +176,6 @@ public class Configuracion extends Fragment {
         );
         adapterPrincipal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerIdiomaPrincipal.setAdapter(adapterPrincipal);
-        spinnerIdiomaPrincipal.setSelection(0);
 
         // Adapter para idiomas preferidos
         ArrayAdapter<String> adapterPreferidos = new ArrayAdapter<>(
@@ -139,9 +192,27 @@ public class Configuracion extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 idiomaPrincipal = idiomas[position];
-                Toast.makeText(getContext(),
-                        "Idioma principal: " + idiomaPrincipal,
-                        Toast.LENGTH_SHORT).show();
+
+                // Guardar en la base de datos
+                if (configActual != null && !idiomasDB.isEmpty()) {
+                    int languageId = idiomasDB.get(position).languageId;
+
+                    // Actualizar el idioma principal en la configuración
+                    int filasActualizadas = userConfigDAO.actualizarIdiomaPrincipal(userId, languageId);
+
+                    if (filasActualizadas > 0) {
+                        // Actualizar también el objeto en memoria
+                        configActual.primaryLanguageId = languageId;
+
+                        Toast.makeText(getContext(),
+                                "Idioma principal actualizado: " + idiomaPrincipal,
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(),
+                                "Error al guardar el idioma",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
 
             @Override
@@ -170,6 +241,10 @@ public class Configuracion extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 modoOffline = isChecked;
+
+                // Guardar en base de datos
+                userConfigDAO.actualizarModoOffline(userId, isChecked);
+
                 if (isChecked) {
                     Toast.makeText(getContext(),
                             "Modo offline activado",
@@ -189,6 +264,10 @@ public class Configuracion extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 sonidosActivados = isChecked;
+
+                // Guardar en base de datos
+                userConfigDAO.actualizarSonidos(userId, isChecked);
+
                 if (isChecked) {
                     Toast.makeText(getContext(),
                             "Sonidos activados",
