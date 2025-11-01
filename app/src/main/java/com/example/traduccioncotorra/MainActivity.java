@@ -18,6 +18,7 @@ import com.example.traduccioncotorra.Models.Usuario;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.example.traduccioncotorra.DB.UserConfigurationDAO;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -153,6 +154,16 @@ public class MainActivity extends AppCompatActivity {
 
             if (user != null) {
                 Log.d("LOGIN", "Usuario válido: " + user.getFullName());
+
+                // ⭐ NUEVO: Guardar el userId en SharedPreferences
+                userDAO.guardarUserIdActual(this, user.getUserId());
+
+                // ⭐ NUEVO: Crear configuración por defecto si no existe
+                UserConfigurationDAO configDAO = new UserConfigurationDAO(this);
+                if (!configDAO.tieneConfiguracion(user.getUserId())) {
+                    configDAO.crearConfiguracionPorDefecto(user.getUserId(), 1); // 1 = Español
+                    Log.d("LOGIN", "Configuración por defecto creada para el usuario");
+                }
                 return true;
             }
 
@@ -245,5 +256,5 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //
+
 }

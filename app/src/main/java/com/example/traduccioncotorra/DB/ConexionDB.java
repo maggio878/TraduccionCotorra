@@ -11,7 +11,7 @@ import java.io.OutputStream;
 
 public class ConexionDB extends SQLiteOpenHelper {
     private static final String DB_NAME = "TraduccionCotorraBD.db";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 3;
     private final Context context;
     private String DB_PATH;
 
@@ -74,17 +74,91 @@ public class ConexionDB extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Maneja upgrades incrementalmente para migrar datos
-        if (oldVersion < 2) {
 
+        if (oldVersion < 2) {
+            // Migración de versión 1 a 2
             db.execSQL("ALTER TABLE User ADD COLUMN isAdmin INTEGER DEFAULT 0");
-            // Opcional: Migra datos existentes (ej. establece valores por defecto)
-            // db.execSQL("UPDATE User SET isAdmin = 0 WHERE isAdmin IS NULL");
         }
+
+        if (oldVersion < 3) {
+            // Migración de versión 2 a 3: Crear tablas nuevas
+
+            // Tabla Language
+            db.execSQL("CREATE TABLE IF NOT EXISTS Language (" +
+                    "Language_Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "Name TEXT NOT NULL, " +
+                    "Code TEXT NOT NULL UNIQUE, " +
+                    "IsActive INTEGER DEFAULT 1" +
+                    ")");
+
+            // Tabla TranslationType
+            db.execSQL("CREATE TABLE IF NOT EXISTS TranslationType (" +
+                    "IdTypeTranslation INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "Name TEXT NOT NULL" +
+                    ")");
+
+            // Tabla Category
+            db.execSQL("CREATE TABLE IF NOT EXISTS Category (" +
+                    "CategoryId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "Name TEXT NOT NULL, " +
+                    "Description TEXT" +
+                    ")");
+
+            // Tabla TranslationHistory
+            db.execSQL("CREATE TABLE IF NOT EXISTS TranslationHistory (" +
+                    "HistoryId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "UserId INTEGER NOT NULL, " +
+                    "TextoOriginal TEXT NOT NULL, " +
+                    "TextoTraducido TEXT NOT NULL, " +
+                    "IdiomaOrigen TEXT NOT NULL, " +
+                    "IdiomaDestino TEXT NOT NULL, " +
+                    "FechaTraduccion TEXT DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (UserId) REFERENCES User(UserId)" +
+                    ")");
+
+            // Tabla UserConfiguration
+            db.execSQL("CREATE TABLE IF NOT EXISTS UserConfiguration (" +
+                    "ConfigurationId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "UserId INTEGER NOT NULL UNIQUE, " +
+                    "PrimaryLanguageId INTEGER NOT NULL, " +
+                    "Theme TEXT DEFAULT 'light', " +
+                    "Sounds_Enable INTEGER DEFAULT 1, " +
+                    "OfflineEnable INTEGER DEFAULT 0, " +
+                    "NotificationsEnable INTEGER DEFAULT 1, " +
+                    "FontSize INTEGER DEFAULT 14, " +
+                    "LastUpdated TEXT DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (UserId) REFERENCES User(UserId), " +
+                    "FOREIGN KEY (PrimaryLanguageId) REFERENCES Language(Language_Id)" +
+                    ")");
+
+
+            // Insertar datos iniciales en Language
+            db.execSQL("INSERT INTO Language (Name, Code, IsActive) VALUES " +
+                    "('Español', 'es', 1), " +
+                    "('Inglés', 'en', 1), " +
+                    "('Francés', 'fr', 1), " +
+                    "('Alemán', 'de', 1), " +
+                    "('Italiano', 'it', 1), " +
+                    "('Portugués', 'pt', 1)");
+
+            // Insertar datos iniciales en TranslationType
+            db.execSQL("INSERT INTO TranslationType (Name) VALUES " +
+                    "('Texto'), ('Cámara'), ('Documento')");
+
+            // Insertar datos iniciales en Category
+            db.execSQL("INSERT INTO Category (Name, Description) VALUES " +
+                    "('Saludos', 'Expresiones de saludo y despedida'), " +
+                    "('Compras', 'Vocabulario para ir de compras'), " +
+                    "('Vida Diaria', 'Palabras y frases cotidianas'), " +
+                    "('Restaurante', 'Vocabulario para restaurantes y comida'), " +
+                    "('Viajes', 'Frases útiles para viajar'), " +
+                    "('Emergencias', 'Vocabulario para situaciones de emergencia')");
+        }
+
         // Agrega más bloques para futuras versiones
-        // if (oldVersion < 3) {
-        //     db.execSQL("ALTER TABLE User ADD COLUMN NuevaColumna TEXT");
+        // if (oldVersion < 4) {
+        //     db.execSQL("ALTER TABLE TranslationHistory ADD COLUMN NuevaColumna TEXT");
         // }
-        // Nota: No uses context.deleteDatabase() ni copyDataBase() aquí
     }
 
 

@@ -18,6 +18,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.LanguageDAO;
+import java.util.List;
 
 import com.example.traduccioncotorra.Models.ModelLanguage;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -50,6 +52,9 @@ public class TraduccionTexto extends Fragment {
     private String targetLanguageTitle = "Inglés";
     private boolean esFavorito = false;
 
+    // DAO para obtener idiomas
+    private LanguageDAO languageDAO;
+    private List<LanguageDAO.Language> idiomasDisponibles;
     // Variables para traducción
     private TranslatorOptions translatorOptions;
     private Translator translator;
@@ -64,6 +69,11 @@ public class TraduccionTexto extends Fragment {
         // Inflar el layout del fragment
         View view = inflater.inflate(R.layout.fragment_traduccion_texto, container, false);
 
+        // Inicializar DAO
+        languageDAO = new LanguageDAO(requireContext());
+
+        // Cargar idiomas de la BD
+        cargarIdiomasDesdeDB();
         // Inicializar progress dialog
         progressDialog = new ProgressDialog(getContext());
         progressDialog.setTitle("Por favor espere");
@@ -91,6 +101,17 @@ public class TraduccionTexto extends Fragment {
         }
 
         return view;
+    }
+    private void cargarIdiomasDesdeDB() {
+        // Obtener solo idiomas activos
+        idiomasDisponibles = languageDAO.obtenerIdiomasActivos();
+
+        // Si no hay idiomas en la BD, mostrar mensaje
+        if (idiomasDisponibles.isEmpty()) {
+            Toast.makeText(getContext(),
+                    "⚠️ No hay idiomas configurados. Ve a Configuración → Administrar Catálogos",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private void loadAvailableLanguages() {
@@ -180,6 +201,34 @@ public class TraduccionTexto extends Fragment {
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
+    }
+
+     // Busca la posición de un idioma por nombre
+
+    private int buscarPosicionIdioma(String nombreIdioma) {
+        for (int i = 0; i < idiomasDisponibles.size(); i++) {
+            if (idiomasDisponibles.get(i).name.equalsIgnoreCase(nombreIdioma)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    //Obtiene el ID del idioma seleccionado (útil para guardar en BD)
+    private int obtenerIdIdiomaOrigen() {
+        for (LanguageDAO.Language idioma : idiomasDisponibles) {
+            if (idioma.name.equals(idiomaOrigen)) {
+                return idioma.languageId;
+            }
+        }
+        return -1;
+    }
+    private int obtenerIdIdiomaDestino() {
+        for (LanguageDAO.Language idioma : idiomasDisponibles) {
+            if (idioma.name.equals(idiomaDestino)) {
+                return idioma.languageId;
+            }
+        }
+        return -1;
     }
 
     private void configurarListeners() {
