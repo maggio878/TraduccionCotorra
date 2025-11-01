@@ -20,6 +20,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.example.traduccioncotorra.DB.UserConfigurationDAO;
 
+
 public class MainActivity extends AppCompatActivity {
 
     private TextInputLayout tilUsuario;

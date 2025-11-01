@@ -49,4 +49,8 @@ dependencies {
     implementation("androidx.navigation:navigation-ui:2.7.7")
     implementation("com.google.android.material:material:1.12.0")
 
+    // Componentes de traduccion
+    implementation("com.google.mlkit:translate:17.0.3")
+
+
 }
