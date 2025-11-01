@@ -19,6 +19,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+
 public class MainActivity extends AppCompatActivity {
 
     private TextInputLayout tilUsuario;
@@ -243,4 +244,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e("TEST_BD", "❌ Error al probar registro: ", e);
         }
     }
+
+    //
 }
