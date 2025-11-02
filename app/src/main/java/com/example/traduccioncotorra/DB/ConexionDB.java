@@ -72,55 +72,6 @@ public class ConexionDB extends SQLiteOpenHelper {
         }
 
         if (oldVersion < 3) {
-            // Migración de versión 2 a 3: Crear tablas nuevas
-
-            // Tabla Language
-            db.execSQL("CREATE TABLE IF NOT EXISTS Language (" +
-                    "Language_Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "Name TEXT NOT NULL, " +
-                    "Code TEXT NOT NULL UNIQUE, " +
-                    "IsActive INTEGER DEFAULT 1" +
-                    ")");
-
-            // Tabla TranslationType
-            db.execSQL("CREATE TABLE IF NOT EXISTS TranslationType (" +
-                    "IdTypeTranslation INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "Name TEXT NOT NULL" +
-                    ")");
-
-            // Tabla Category
-            db.execSQL("CREATE TABLE IF NOT EXISTS Category (" +
-                    "CategoryId INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "Name TEXT NOT NULL, " +
-                    "Description TEXT" +
-                    ")");
-
-            // Tabla TranslationHistory
-            db.execSQL("CREATE TABLE IF NOT EXISTS TranslationHistory (" +
-                    "HistoryId INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "UserId INTEGER NOT NULL, " +
-                    "TextoOriginal TEXT NOT NULL, " +
-                    "TextoTraducido TEXT NOT NULL, " +
-                    "IdiomaOrigen TEXT NOT NULL, " +
-                    "IdiomaDestino TEXT NOT NULL, " +
-                    "FechaTraduccion TEXT DEFAULT CURRENT_TIMESTAMP, " +
-                    "FOREIGN KEY (UserId) REFERENCES User(UserId)" +
-                    ")");
-
-            // Tabla UserConfiguration
-            db.execSQL("CREATE TABLE IF NOT EXISTS UserConfiguration (" +
-                    "ConfigurationId INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "UserId INTEGER NOT NULL UNIQUE, " +
-                    "PrimaryLanguageId INTEGER NOT NULL, " +
-                    "Theme TEXT DEFAULT 'light', " +
-                    "Sounds_Enable INTEGER DEFAULT 1, " +
-                    "OfflineEnable INTEGER DEFAULT 0, " +
-                    "NotificationsEnable INTEGER DEFAULT 1, " +
-                    "FontSize INTEGER DEFAULT 14, " +
-                    "LastUpdated TEXT DEFAULT CURRENT_TIMESTAMP, " +
-                    "FOREIGN KEY (UserId) REFERENCES User(UserId), " +
-                    "FOREIGN KEY (PrimaryLanguageId) REFERENCES Language(Language_Id)" +
-                    ")");
 
             // Insertar datos iniciales en Language
             db.execSQL("INSERT INTO Language (Name, Code, IsActive) VALUES " +
