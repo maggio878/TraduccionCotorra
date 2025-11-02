@@ -22,6 +22,7 @@ import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
 import com.example.traduccioncotorra.DB.TranslationTypeDAO;
+import com.example.traduccioncotorra.DB.FavoriteTranslationDAO;
 import java.util.List;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -53,11 +54,10 @@ public class TraduccionTexto extends Fragment {
     // DAO para obtener idiomas
     private LanguageDAO languageDAO;
     private List<LanguageDAO.Language> idiomasDisponibles;
-
-    // ⭐ NUEVO: DAOs para historial
     private HistorialDAO historialDAO;
     private UserDAO userDAO;
     private TranslationTypeDAO translationTypeDAO;
+    private FavoriteTranslationDAO favoriteDAO;
     private int userId;
     private int translationTypeId = 1; // 1 = Texto (por defecto)
 
@@ -74,6 +74,10 @@ public class TraduccionTexto extends Fragment {
     private ProgressDialog progressDialog;
     private static final String TAG = "TRADUCCION_TAG";
 
+    private String idiomaOrigenActual = "";
+    private String idiomaDestinoActual = "";
+
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -87,6 +91,7 @@ public class TraduccionTexto extends Fragment {
         historialDAO = new HistorialDAO(requireContext());
         userDAO = new UserDAO(requireContext());
         translationTypeDAO = new TranslationTypeDAO(requireContext());
+        favoriteDAO = new FavoriteTranslationDAO(requireContext());
         userId = userDAO.obtenerUserIdActual(requireContext());
 
         // Obtener el ID del tipo "Texto"
@@ -165,7 +170,7 @@ public class TraduccionTexto extends Fragment {
     }
 
     /**
-     * ⭐ REFACTORIZADO: Configurar spinners desde la BD
+       Configurar spinners desde la BD
      */
     private void configurarSpinners() {
         if (idiomasDisponibles.isEmpty()) {
@@ -288,13 +293,66 @@ public class TraduccionTexto extends Fragment {
     private void configurarListeners() {
         // Listener para el botón de favoritos
         btnFavorite.setOnClickListener(v -> {
-            esFavorito = !esFavorito;
+            String textoOriginal = txtTextoIngresado.getText().toString().trim();
+            String textoTraducido = txtvTextoTraducido.getText().toString().trim();
+
+            if (textoOriginal.isEmpty() || textoTraducido.isEmpty()) {
+                Toast.makeText(getContext(),
+                        "Primero traduce un texto",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Toggle favorito
             if (esFavorito) {
-                btnFavorite.setImageResource(R.drawable.favorite);
-                Toast.makeText(getContext(), "Agregado a favoritos", Toast.LENGTH_SHORT).show();
+                // Eliminar de favoritos
+                int resultado = favoriteDAO.eliminarFavoritoPorTextos(
+                        userId, textoOriginal, textoTraducido);
+
+                if (resultado > 0) {
+                    esFavorito = false;
+                    btnFavorite.setImageResource(R.drawable.ic_star_outline);
+                    Toast.makeText(getContext(),
+                            "Removido de favoritos",
+                            Toast.LENGTH_SHORT).show();
+                }
             } else {
-                btnFavorite.setImageResource(R.drawable.ic_star_outline);
-                Toast.makeText(getContext(), "Removido de favoritos", Toast.LENGTH_SHORT).show();
+                // Agregar a favoritos
+                // Obtener IDs de idiomas
+                int sourceLanguageId = obtenerIdIdiomaPorCodigo(sourceLanguageCode);
+                int targetLanguageId = obtenerIdIdiomaPorCodigo(targetLanguageCode);
+                int translationTypeId = 1; // Tipo "Texto"
+
+                if (sourceLanguageId == -1 || targetLanguageId == -1) {
+                    Toast.makeText(getContext(),
+                            "Error al identificar idiomas",
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                FavoriteTranslationDAO.FavoriteTranslation favorito =
+                        new FavoriteTranslationDAO.FavoriteTranslation(
+                                userId,
+                                sourceLanguageId,
+                                targetLanguageId,
+                                translationTypeId,
+                                textoOriginal,
+                                textoTraducido
+                        );
+
+                long resultado = favoriteDAO.insertarFavorito(favorito);
+
+                if (resultado != -1) {
+                    esFavorito = true;
+                    btnFavorite.setImageResource(R.drawable.favorite);
+                    Toast.makeText(getContext(),
+                            "Agregado a favoritos",
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getContext(),
+                            "Error al agregar a favoritos",
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -425,6 +483,7 @@ public class TraduccionTexto extends Fragment {
                     public void onSuccess(String textoTraducido) {
                         Log.d(TAG, "Traducción exitosa: " + textoTraducido);
                         txtvTextoTraducido.setText(textoTraducido);
+                        verificarEstadoFavorito();
 
                         // ⭐ ACTUALIZADO: Programar guardado con debounce
                         programarGuardadoConDebounce(textoOriginal, textoTraducido);
@@ -530,6 +589,32 @@ public class TraduccionTexto extends Fragment {
                 .replace(R.id.fragment_container, configuracionFragment)
                 .addToBackStack(null)
                 .commit();
+    }
+    private int obtenerIdIdiomaPorCodigo(String languageCode) {
+        List<LanguageDAO.Language> idiomas = languageDAO.obtenerTodosLosIdiomas();
+
+        for (LanguageDAO.Language idioma : idiomas) {
+            if (idioma.code.equalsIgnoreCase(languageCode)) {
+                return idioma.languageId;
+            }
+        }
+
+        return -1;
+    }
+
+    private void verificarEstadoFavorito() {
+        String textoOriginal = txtTextoIngresado.getText().toString().trim();
+        String textoTraducido = txtvTextoTraducido.getText().toString().trim();
+
+        if (!textoOriginal.isEmpty() && !textoTraducido.isEmpty()) {
+            esFavorito = favoriteDAO.existeFavorito(userId, textoOriginal, textoTraducido);
+
+            if (esFavorito) {
+                btnFavorite.setImageResource(R.drawable.favorite);
+            } else {
+                btnFavorite.setImageResource(R.drawable.ic_star_outline);
+            }
+        }
     }
 
     @Override

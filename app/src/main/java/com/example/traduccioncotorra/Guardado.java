@@ -16,12 +16,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.FavoriteTranslationDAO;
+import com.example.traduccioncotorra.DB.LanguageDAO;
+import com.example.traduccioncotorra.DB.TranslationTypeDAO;
+import com.example.traduccioncotorra.DB.UserDAO;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-
 
 public class Guardado extends Fragment {
 
@@ -30,25 +33,15 @@ public class Guardado extends Fragment {
     private ViewGroup contenedorFavoritos;
     private TextView noCoincidenciasMessage;
 
-    private List<TraduccionFavorita> todasLasTraducciones;
-    private List<TraduccionFavorita> traduccionesFiltradas;
-    // Clase interna para representar una traducción favorita
-    public static class TraduccionFavorita {
-        String textoOriginal;
-        String textoTraducido;
-        String idiomaOrigen;
-        String idiomaDestino;
-        long fechaGuardado;
+    // DAOs
+    private FavoriteTranslationDAO favoriteDAO;
+    private LanguageDAO languageDAO;
+    private TranslationTypeDAO translationTypeDAO;
+    private UserDAO userDAO;
+    private int userId;
 
-        TraduccionFavorita(String original, String traducido, String origen,
-                           String destino, long fecha) {
-            this.textoOriginal = original;
-            this.textoTraducido = traducido;
-            this.idiomaOrigen = origen;
-            this.idiomaDestino = destino;
-            this.fechaGuardado = fecha;
-        }
-    }
+    private List<FavoriteTranslationDAO.FavoriteTranslation> todasLasTraducciones;
+    private List<FavoriteTranslationDAO.FavoriteTranslation> traduccionesFiltradas;
 
     @Nullable
     @Override
@@ -56,11 +49,20 @@ public class Guardado extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_guardados, container, false);
 
+        // Inicializar DAOs
+        favoriteDAO = new FavoriteTranslationDAO(requireContext());
+        languageDAO = new LanguageDAO(requireContext());
+        translationTypeDAO = new TranslationTypeDAO(requireContext());
+        userDAO = new UserDAO(requireContext());
+
+        // Obtener userId actual
+        userId = userDAO.obtenerUserIdActual(requireContext());
+
         // Inicializar vistas
         inicializarVistas(view);
 
-        // Cargar datos de ejemplo
-        cargarDatosEjemplo();
+        // Cargar favoritos desde la BD
+        cargarFavoritosDesdeDB();
 
         // Configurar listeners
         configurarListeners();
@@ -78,60 +80,13 @@ public class Guardado extends Fragment {
         noCoincidenciasMessage = view.findViewById(R.id.no_coincidences_message);
     }
 
-    private void cargarDatosEjemplo() {
-        todasLasTraducciones = new ArrayList<>();
-
-        // Agregar traducciones de ejemplo
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "Hello, how are you?",
-                "Hola, ¿cómo estás?",
-                "Inglés",
-                "Español",
-                System.currentTimeMillis() - 3600000 // Hace 1 hora
-        ));
-
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "Good morning",
-                "Buenos días",
-                "Inglés",
-                "Español",
-                System.currentTimeMillis() - 7200000 // Hace 2 horas
-        ));
-
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "Thank you very much",
-                "Muchas gracias",
-                "Inglés",
-                "Español",
-                System.currentTimeMillis() - 86400000 // Hace 1 día
-        ));
-
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "Where is the bathroom?",
-                "¿Dónde está el baño?",
-                "Inglés",
-                "Español",
-                System.currentTimeMillis() - 172800000 // Hace 2 días
-        ));
-
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "I don't understand",
-                "No entiendo",
-                "Inglés",
-                "Español",
-                System.currentTimeMillis() - 259200000 // Hace 3 días
-        ));
-
-        todasLasTraducciones.add(new TraduccionFavorita(
-                "Bonjour, comment allez-vous?",
-                "Hola, ¿cómo está usted?",
-                "Francés",
-                "Español",
-                System.currentTimeMillis() - 345600000 // Hace 4 días
-        ));
-
-        // Inicializar lista filtrada
-        traduccionesFiltradas = new ArrayList<>(todasLasTraducciones);
+    private void cargarFavoritosDesdeDB() {
+        if (userId != -1) {
+            todasLasTraducciones = favoriteDAO.obtenerFavoritosPorUsuario(userId);
+            traduccionesFiltradas = todasLasTraducciones;
+        } else {
+            Toast.makeText(getContext(), "Error: Usuario no identificado", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void configurarListeners() {
@@ -163,7 +118,7 @@ public class Guardado extends Fragment {
         // Limpiar contenedor
         contenedorFavoritos.removeAllViews();
 
-        if (traduccionesFiltradas.isEmpty()) {
+        if (traduccionesFiltradas == null || traduccionesFiltradas.isEmpty()) {
             mostrarMensajeVacio(true);
             return;
         }
@@ -178,14 +133,13 @@ public class Guardado extends Fragment {
         contenedorFavoritos.addView(scrollView);
 
         // Crear tarjetas para cada favorito
-        for (int i = 0; i < traduccionesFiltradas.size(); i++) {
-            TraduccionFavorita favorito = traduccionesFiltradas.get(i);
-            View tarjeta = crearTarjetaFavorito(favorito, i);
+        for (FavoriteTranslationDAO.FavoriteTranslation favorito : traduccionesFiltradas) {
+            View tarjeta = crearTarjetaFavorito(favorito);
             linearLayout.addView(tarjeta);
         }
     }
 
-    private View crearTarjetaFavorito(TraduccionFavorita favorito, int posicion) {
+    private View crearTarjetaFavorito(FavoriteTranslationDAO.FavoriteTranslation favorito) {
         // Crear contenedor principal
         LinearLayout tarjeta = new LinearLayout(getContext());
         tarjeta.setOrientation(LinearLayout.VERTICAL);
@@ -204,9 +158,13 @@ public class Guardado extends Fragment {
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setPadding(0, 0, 0, 12);
 
+        // Obtener nombres de idiomas
+        String idiomaOrigen = obtenerNombreIdioma(favorito.sourceLanguageId);
+        String idiomaDestino = obtenerNombreIdioma(favorito.targetLanguageId);
+
         // Idiomas
         TextView tvIdiomas = new TextView(getContext());
-        tvIdiomas.setText(favorito.idiomaOrigen + " → " + favorito.idiomaDestino);
+        tvIdiomas.setText(idiomaOrigen + " → " + idiomaDestino);
         tvIdiomas.setTextSize(12);
         tvIdiomas.setTextColor(getResources().getColor(android.R.color.darker_gray));
         LinearLayout.LayoutParams idiomasParams = new LinearLayout.LayoutParams(
@@ -234,7 +192,7 @@ public class Guardado extends Fragment {
 
         // Texto original
         TextView tvOriginal = new TextView(getContext());
-        tvOriginal.setText(favorito.textoOriginal);
+        tvOriginal.setText(favorito.originalText);
         tvOriginal.setTextSize(16);
         tvOriginal.setTextColor(getResources().getColor(android.R.color.black));
         tvOriginal.setPadding(0, 8, 0, 4);
@@ -242,7 +200,7 @@ public class Guardado extends Fragment {
 
         // Texto traducido
         TextView tvTraducido = new TextView(getContext());
-        tvTraducido.setText("→ " + favorito.textoTraducido);
+        tvTraducido.setText("→ " + favorito.translatedText);
         tvTraducido.setTextSize(16);
         tvTraducido.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
         tvTraducido.setPadding(0, 4, 0, 8);
@@ -250,7 +208,7 @@ public class Guardado extends Fragment {
 
         // Fecha
         TextView tvFecha = new TextView(getContext());
-        tvFecha.setText(formatearFecha(favorito.fechaGuardado));
+        tvFecha.setText(formatearFecha(favorito.savedDate));
         tvFecha.setTextSize(11);
         tvFecha.setTextColor(getResources().getColor(android.R.color.darker_gray));
         tvFecha.setAlpha(0.6f);
@@ -259,7 +217,7 @@ public class Guardado extends Fragment {
         // Click en la tarjeta para copiar
         tarjeta.setOnClickListener(v -> {
             Toast.makeText(getContext(),
-                    "Traducción copiada:\n" + favorito.textoTraducido,
+                    "Traducción copiada:\n" + favorito.translatedText,
                     Toast.LENGTH_SHORT).show();
         });
 
@@ -268,35 +226,31 @@ public class Guardado extends Fragment {
 
     private void filtrarFavoritos(String busqueda) {
         if (busqueda.isEmpty()) {
-            traduccionesFiltradas = new ArrayList<>(todasLasTraducciones);
+            traduccionesFiltradas = todasLasTraducciones;
         } else {
-            traduccionesFiltradas.clear();
-            String busquedaLower = busqueda.toLowerCase();
-
-            for (TraduccionFavorita traduccion : todasLasTraducciones) {
-                if (traduccion.textoOriginal.toLowerCase().contains(busquedaLower) ||
-                        traduccion.textoTraducido.toLowerCase().contains(busquedaLower) ||
-                        traduccion.idiomaOrigen.toLowerCase().contains(busquedaLower) ||
-                        traduccion.idiomaDestino.toLowerCase().contains(busquedaLower)) {
-                    traduccionesFiltradas.add(traduccion);
-                }
-            }
+            traduccionesFiltradas = favoriteDAO.buscarFavoritos(userId, busqueda);
         }
 
         mostrarFavoritos();
     }
 
-    private void confirmarEliminar(TraduccionFavorita favorito) {
+    private void confirmarEliminar(FavoriteTranslationDAO.FavoriteTranslation favorito) {
         new AlertDialog.Builder(getContext())
                 .setTitle("Eliminar favorito")
                 .setMessage("¿Estás seguro de eliminar esta traducción de favoritos?")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
-                    todasLasTraducciones.remove(favorito);
-                    traduccionesFiltradas.remove(favorito);
-                    mostrarFavoritos();
-                    Toast.makeText(getContext(),
-                            "Traducción eliminada de favoritos",
-                            Toast.LENGTH_SHORT).show();
+                    int resultado = favoriteDAO.eliminarFavorito(favorito.idFavoriteTranslation);
+                    if (resultado > 0) {
+                        cargarFavoritosDesdeDB();
+                        mostrarFavoritos();
+                        Toast.makeText(getContext(),
+                                "Traducción eliminada de favoritos",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(),
+                                "Error al eliminar",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -305,9 +259,9 @@ public class Guardado extends Fragment {
     private void mostrarMenuOpciones() {
         String[] opciones = {
                 "Eliminar todos los favoritos",
+                "Ver solo frecuentes",
                 "Exportar favoritos",
-                "Ordenar por fecha",
-                "Ordenar por idioma"
+                "Ordenar por fecha"
         };
 
         new AlertDialog.Builder(getContext())
@@ -318,15 +272,18 @@ public class Guardado extends Fragment {
                             confirmarEliminarTodos();
                             break;
                         case 1:
+                            mostrarSoloFrecuentes();
+                            break;
+                        case 2:
                             Toast.makeText(getContext(),
                                     "Exportar favoritos - Función en desarrollo",
                                     Toast.LENGTH_SHORT).show();
                             break;
-                        case 2:
-                            ordenarPorFecha();
-                            break;
                         case 3:
-                            ordenarPorIdioma();
+                            cargarFavoritosDesdeDB();
+                            mostrarFavoritos();
+                            Toast.makeText(getContext(), "Ordenado por fecha (más reciente primero)",
+                                    Toast.LENGTH_SHORT).show();
                             break;
                     }
                 })
@@ -338,81 +295,112 @@ public class Guardado extends Fragment {
                 .setTitle("Eliminar todos")
                 .setMessage("¿Estás seguro de eliminar TODOS los favoritos? Esta acción no se puede deshacer.")
                 .setPositiveButton("Eliminar todo", (dialog, which) -> {
-                    todasLasTraducciones.clear();
-                    traduccionesFiltradas.clear();
-                    mostrarFavoritos();
-                    Toast.makeText(getContext(),
-                            "Todos los favoritos han sido eliminados",
-                            Toast.LENGTH_SHORT).show();
+                    int resultado = favoriteDAO.eliminarTodosFavoritos(userId);
+                    if (resultado > 0) {
+                        cargarFavoritosDesdeDB();
+                        mostrarFavoritos();
+                        Toast.makeText(getContext(),
+                                "Todos los favoritos han sido eliminados (" + resultado + " elementos)",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(),
+                                "No hay favoritos para eliminar",
+                                Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
 
-    private void ordenarPorFecha() {
-        traduccionesFiltradas.sort((t1, t2) ->
-                Long.compare(t2.fechaGuardado, t1.fechaGuardado));
+    private void mostrarSoloFrecuentes() {
+        traduccionesFiltradas = favoriteDAO.obtenerFavoritosFrecuentes(userId);
         mostrarFavoritos();
-        Toast.makeText(getContext(), "Ordenado por fecha (más reciente primero)",
-                Toast.LENGTH_SHORT).show();
-    }
 
-    private void ordenarPorIdioma() {
-        traduccionesFiltradas.sort((t1, t2) -> {
-            int comparacion = t1.idiomaOrigen.compareTo(t2.idiomaOrigen);
-            if (comparacion == 0) {
-                return t1.idiomaDestino.compareTo(t2.idiomaDestino);
-            }
-            return comparacion;
-        });
-        mostrarFavoritos();
-        Toast.makeText(getContext(), "Ordenado por idioma",
+        int cantidad = traduccionesFiltradas.size();
+        Toast.makeText(getContext(),
+                "Mostrando " + cantidad + " traduccion" + (cantidad == 1 ? "" : "es") + " frecuente" + (cantidad == 1 ? "" : "s"),
                 Toast.LENGTH_SHORT).show();
     }
 
     private void mostrarMensajeVacio(boolean mostrar) {
         if (noCoincidenciasMessage != null) {
             noCoincidenciasMessage.setVisibility(mostrar ? View.VISIBLE : View.GONE);
+            if (mostrar) {
+                noCoincidenciasMessage.setText("No hay favoritos guardados");
+            }
         }
     }
 
-    private String formatearFecha(long timestamp) {
-        long diferencia = System.currentTimeMillis() - timestamp;
-        long segundos = diferencia / 1000;
-        long minutos = segundos / 60;
-        long horas = minutos / 60;
-        long dias = horas / 24;
+    private String formatearFecha(String fechaString) {
+        try {
+            SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            Date fecha = sdfInput.parse(fechaString);
 
-        if (dias > 0) {
-            return "Hace " + dias + (dias == 1 ? " día" : " días");
-        } else if (horas > 0) {
-            return "Hace " + horas + (horas == 1 ? " hora" : " horas");
-        } else if (minutos > 0) {
-            return "Hace " + minutos + (minutos == 1 ? " minuto" : " minutos");
+            if (fecha != null) {
+                long diferencia = System.currentTimeMillis() - fecha.getTime();
+                long segundos = diferencia / 1000;
+                long minutos = segundos / 60;
+                long horas = minutos / 60;
+                long dias = horas / 24;
+
+                if (dias > 0) {
+                    return "Hace " + dias + (dias == 1 ? " día" : " días");
+                } else if (horas > 0) {
+                    return "Hace " + horas + (horas == 1 ? " hora" : " horas");
+                } else if (minutos > 0) {
+                    return "Hace " + minutos + (minutos == 1 ? " minuto" : " minutos");
+                } else {
+                    return "Hace unos segundos";
+                }
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return fechaString;
+    }
+
+    private String obtenerNombreIdioma(int languageId) {
+        LanguageDAO.Language idioma = languageDAO.obtenerIdiomaPorId(languageId);
+        return idioma != null ? idioma.name : "Desconocido";
+    }
+
+    /**
+     * Método público para agregar nuevos favoritos desde otros fragments
+     */
+    public void agregarFavorito(int sourceLanguageId, int targetLanguageId,
+                                int translationTypeId, String textoOriginal,
+                                String textoTraducido) {
+        FavoriteTranslationDAO.FavoriteTranslation nuevo =
+                new FavoriteTranslationDAO.FavoriteTranslation(
+                        userId,
+                        sourceLanguageId,
+                        targetLanguageId,
+                        translationTypeId,
+                        textoOriginal,
+                        textoTraducido
+                );
+
+        long resultado = favoriteDAO.insertarFavorito(nuevo);
+
+        if (resultado != -1) {
+            cargarFavoritosDesdeDB();
+            mostrarFavoritos();
+            Toast.makeText(getContext(),
+                    "Traducción agregada a favoritos",
+                    Toast.LENGTH_SHORT).show();
         } else {
-            return "Hace unos segundos";
+            Toast.makeText(getContext(),
+                    "Error al agregar a favoritos",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Método público para agregar nuevos favoritos desde otros fragments
-    public void agregarFavorito(String textoOriginal, String textoTraducido,
-                                String idiomaOrigen, String idiomaDestino) {
-        TraduccionFavorita nueva = new TraduccionFavorita(
-                textoOriginal,
-                textoTraducido,
-                idiomaOrigen,
-                idiomaDestino,
-                System.currentTimeMillis()
-        );
-
-        todasLasTraducciones.add(0, nueva); // Agregar al inicio
-        traduccionesFiltradas = new ArrayList<>(todasLasTraducciones);
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Recargar favoritos cuando el fragment vuelve a estar visible
+        cargarFavoritosDesdeDB();
         mostrarFavoritos();
-
-        Toast.makeText(getContext(),
-                "Traducción agregada a favoritos",
-                Toast.LENGTH_SHORT).show();
     }
-
-
 }
