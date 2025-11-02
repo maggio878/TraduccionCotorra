@@ -1,6 +1,7 @@
 package com.example.traduccioncotorra;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +19,6 @@ import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.google.android.material.button.MaterialButton;
 import java.util.List;
 
-
 public class TraduccionCamara extends Fragment {
 
     private EditText etTranslatedText;
@@ -27,12 +27,16 @@ public class TraduccionCamara extends Fragment {
     private MaterialButton btnConfirmTranslation;
     private ImageButton menuButtonConfig;
 
-    private String idiomaDestino = "Inglés";
+    // ⭐ NUEVO: Variables para idiomas desde BD
+    private String idiomaDestino;
+    private String idiomaDestinoApiCode;
     private boolean esFavorito = false;
     private String textoExtraido = "";
 
     private LanguageDAO languageDAO;
     private List<LanguageDAO.Language> idiomasDisponibles;
+    private static final String TAG = "TRADUCCION_CAMARA";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -56,6 +60,10 @@ public class TraduccionCamara extends Fragment {
 
         return view;
     }
+
+    /**
+     * ⭐ NUEVO: Cargar idiomas desde la base de datos
+     */
     private void cargarIdiomasDesdeDB() {
         idiomasDisponibles = languageDAO.obtenerIdiomasActivos();
 
@@ -63,8 +71,11 @@ public class TraduccionCamara extends Fragment {
             Toast.makeText(getContext(),
                     "⚠️ No hay idiomas configurados",
                     Toast.LENGTH_LONG).show();
+        } else {
+            Log.d(TAG, "Idiomas cargados: " + idiomasDisponibles.size());
         }
     }
+
     private void inicializarVistas(View view) {
         etTranslatedText = view.findViewById(R.id.etTranslatedText);
         ivFavorite = view.findViewById(R.id.ivFavorite);
@@ -73,10 +84,15 @@ public class TraduccionCamara extends Fragment {
         menuButtonConfig = view.findViewById(R.id.menu_button_config);
     }
 
+    /**
+     * ⭐ REFACTORIZADO: Configurar spinner desde la BD
+     */
     private void configurarSpinner() {
-
         if (idiomasDisponibles.isEmpty()) {
             spinnerTargetLanguage.setEnabled(false);
+            Toast.makeText(getContext(),
+                    "No hay idiomas disponibles. Configura idiomas primero.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -86,7 +102,7 @@ public class TraduccionCamara extends Fragment {
             nombresIdiomas[i] = idiomasDisponibles.get(i).name;
         }
 
-        // Crear adapter para el spinner
+        // Crear adapter
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
@@ -94,17 +110,20 @@ public class TraduccionCamara extends Fragment {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        // Configurar spinner de idioma destino
+        // Configurar spinner
         spinnerTargetLanguage.setAdapter(adapter);
 
-        // Buscar posición de "Inglés" y seleccionarlo por defecto
+        // ⭐ Buscar y seleccionar "Inglés" por defecto
         int posicionIngles = buscarPosicionIdioma("Inglés");
         if (posicionIngles != -1) {
             spinnerTargetLanguage.setSelection(posicionIngles);
-            idiomaDestino = "Inglés";
+            idiomaDestino = idiomasDisponibles.get(posicionIngles).name;
+            idiomaDestinoApiCode = idiomasDisponibles.get(posicionIngles).apiCode;
         } else if (nombresIdiomas.length > 0) {
+            // Si no hay inglés, usar el primer idioma
             spinnerTargetLanguage.setSelection(0);
-            idiomaDestino = nombresIdiomas[0];
+            idiomaDestino = idiomasDisponibles.get(0).name;
+            idiomaDestinoApiCode = idiomasDisponibles.get(0).apiCode;
         }
 
         // Listener para el spinner
@@ -112,7 +131,10 @@ public class TraduccionCamara extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position < idiomasDisponibles.size()) {
-                    idiomaDestino = idiomasDisponibles.get(position).name;
+                    LanguageDAO.Language idioma = idiomasDisponibles.get(position);
+                    idiomaDestino = idioma.name;
+                    idiomaDestinoApiCode = idioma.apiCode;
+                    Log.d(TAG, "Idioma destino seleccionado: " + idiomaDestino + " (" + idiomaDestinoApiCode + ")");
                 }
             }
 
@@ -120,6 +142,10 @@ public class TraduccionCamara extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
+
+    /**
+     * ⭐ NUEVO: Buscar posición de un idioma por nombre
+     */
     private int buscarPosicionIdioma(String nombreIdioma) {
         for (int i = 0; i < idiomasDisponibles.size(); i++) {
             if (idiomasDisponibles.get(i).name.equalsIgnoreCase(nombreIdioma)) {
@@ -128,6 +154,7 @@ public class TraduccionCamara extends Fragment {
         }
         return -1;
     }
+
     private void configurarListeners() {
         // Listener para el botón de traducir (simula tomar foto y traducir)
         btnConfirmTranslation.setOnClickListener(v -> {
@@ -160,7 +187,6 @@ public class TraduccionCamara extends Fragment {
     }
 
     private void simularCapturaDeCamara() {
-        // Mostrar mensaje de que se está procesando
         Toast.makeText(getContext(), "Capturando imagen y extrayendo texto...",
                 Toast.LENGTH_SHORT).show();
 
@@ -179,7 +205,6 @@ public class TraduccionCamara extends Fragment {
     }
 
     private String simularOCR() {
-
         String[] textosSimulados = {
                 "Hello World",
                 "Welcome to our restaurant",
@@ -189,13 +214,13 @@ public class TraduccionCamara extends Fragment {
                 "No parking"
         };
 
-        // Seleccionar un texto aleatorio
         int indice = (int) (Math.random() * textosSimulados.length);
         return textosSimulados[indice];
     }
 
     private String simularTraduccion(String texto, String idiomaDestino) {
-        // En producción, aquí usaríamos Google Translate API o similar
+        // En producción, aquí usaríamos ML Kit con el apiCode correcto
+        // Ejemplo: translator.translate(texto) usando idiomaDestinoApiCode
         return "[" + idiomaDestino + "] " + texto + " (traducción simulada desde cámara)";
     }
 

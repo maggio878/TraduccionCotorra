@@ -8,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -138,12 +137,22 @@ public class AdminCatalogos extends Fragment {
         );
         infoLayout.setLayoutParams(infoParams);
 
+        // Nombre y código
         TextView tvNombre = new TextView(getContext());
         tvNombre.setText(idioma.name + " (" + idioma.code + ")");
         tvNombre.setTextSize(16);
         tvNombre.setTextColor(getResources().getColor(android.R.color.black));
         infoLayout.addView(tvNombre);
 
+        // ⭐ NUEVO: Mostrar ApiCode
+        TextView tvApiCode = new TextView(getContext());
+        String apiCodeTexto = "API: " + (idioma.apiCode != null ? idioma.apiCode : "N/A");
+        tvApiCode.setText(apiCodeTexto);
+        tvApiCode.setTextSize(11);
+        tvApiCode.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        infoLayout.addView(tvApiCode);
+
+        // Estado
         TextView tvEstado = new TextView(getContext());
         tvEstado.setText(idioma.isActive == 1 ? "✓ Activo" : "✗ Inactivo");
         tvEstado.setTextSize(12);
@@ -178,6 +187,9 @@ public class AdminCatalogos extends Fragment {
         return tarjeta;
     }
 
+    /**
+     * ⭐ ACTUALIZADO: Diálogo con campo ApiCode
+     */
     private void mostrarDialogoAgregarIdioma() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Agregar Idioma");
@@ -186,24 +198,47 @@ public class AdminCatalogos extends Fragment {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 20, 50, 20);
 
+        // Campo nombre
         final EditText etNombre = new EditText(getContext());
         etNombre.setHint("Nombre del idioma (ej: Español)");
         layout.addView(etNombre);
 
+        // Campo código
         final EditText etCodigo = new EditText(getContext());
         etCodigo.setHint("Código (ej: es, en, fr)");
         etCodigo.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         layout.addView(etCodigo);
+
+        // ⭐ NUEVO: Campo ApiCode
+        final EditText etApiCode = new EditText(getContext());
+        etApiCode.setHint("Código API ML Kit (ej: es, en, fr)");
+        etApiCode.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        layout.addView(etApiCode);
+
+        // Nota informativa
+        TextView tvNota = new TextView(getContext());
+        tvNota.setText("💡 El código API debe coincidir con los códigos de ML Kit Translation");
+        tvNota.setTextSize(11);
+        tvNota.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        tvNota.setPadding(0, 8, 0, 0);
+        layout.addView(tvNota);
 
         builder.setView(layout);
 
         builder.setPositiveButton("Agregar", (dialog, which) -> {
             String nombre = etNombre.getText().toString().trim();
             String codigo = etCodigo.getText().toString().trim();
+            String apiCode = etApiCode.getText().toString().trim();
 
+            // Validaciones
             if (nombre.isEmpty() || codigo.isEmpty()) {
-                Toast.makeText(getContext(), "Todos los campos son requeridos", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Nombre y código son requeridos", Toast.LENGTH_SHORT).show();
                 return;
+            }
+
+            // Si ApiCode está vacío, usar Code por defecto
+            if (apiCode.isEmpty()) {
+                apiCode = codigo;
             }
 
             if (languageDAO.existeCodigoIdioma(codigo)) {
@@ -211,7 +246,13 @@ public class AdminCatalogos extends Fragment {
                 return;
             }
 
-            LanguageDAO.Language nuevoIdioma = new LanguageDAO.Language(nombre, codigo);
+            if (languageDAO.existeApiCode(apiCode)) {
+                Toast.makeText(getContext(), "El código API ya existe", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Crear idioma con ApiCode
+            LanguageDAO.Language nuevoIdioma = new LanguageDAO.Language(nombre, codigo, apiCode);
             long resultado = languageDAO.insertarIdioma(nuevoIdioma);
 
             if (resultado != -1) {
@@ -226,6 +267,9 @@ public class AdminCatalogos extends Fragment {
         builder.show();
     }
 
+    /**
+     * ⭐ ACTUALIZADO: Diálogo de edición con ApiCode
+     */
     private void mostrarDialogoEditarIdioma(LanguageDAO.Language idioma) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Editar Idioma");
@@ -234,21 +278,35 @@ public class AdminCatalogos extends Fragment {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 20, 50, 20);
 
+        // Campo nombre
         final EditText etNombre = new EditText(getContext());
         etNombre.setHint("Nombre del idioma");
         etNombre.setText(idioma.name);
         layout.addView(etNombre);
 
+        // Campo código
         final EditText etCodigo = new EditText(getContext());
         etCodigo.setHint("Código");
         etCodigo.setText(idioma.code);
         layout.addView(etCodigo);
+
+        // ⭐ NUEVO: Campo ApiCode
+        final EditText etApiCode = new EditText(getContext());
+        etApiCode.setHint("Código API ML Kit");
+        etApiCode.setText(idioma.apiCode != null ? idioma.apiCode : idioma.code);
+        layout.addView(etApiCode);
 
         builder.setView(layout);
 
         builder.setPositiveButton("Guardar", (dialog, which) -> {
             idioma.name = etNombre.getText().toString().trim();
             idioma.code = etCodigo.getText().toString().trim();
+            idioma.apiCode = etApiCode.getText().toString().trim();
+
+            // Si ApiCode está vacío, usar Code
+            if (idioma.apiCode.isEmpty()) {
+                idioma.apiCode = idioma.code;
+            }
 
             int resultado = languageDAO.actualizarIdioma(idioma);
 
@@ -282,6 +340,7 @@ public class AdminCatalogos extends Fragment {
     }
 
     // ==================== SECCIÓN TIPOS DE TRADUCCIÓN ====================
+    // (El código de esta sección permanece igual)
 
     private void agregarSeccionTiposTraduccion() {
         TextView titulo = new TextView(getContext());
@@ -416,6 +475,7 @@ public class AdminCatalogos extends Fragment {
     }
 
     // ==================== SECCIÓN CATEGORÍAS ====================
+    // (El código de esta sección permanece igual)
 
     private void agregarSeccionCategorias() {
         TextView titulo = new TextView(getContext());
