@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/app_bg_removed"
+    android:background="#c4dbe0"
     tools:context=".Configuracion">
 
     <RelativeLayout
@@ -36,6 +36,7 @@
                 android:layout_centerVertical="true"
                 android:src="@android:drawable/ic_menu_revert"
                 android:background="@android:color/transparent"
+                app:tint="@color/blue_menu"
                 android:contentDescription="Volver" />
 
             <TextView
@@ -156,7 +157,7 @@
                     android:id="@+id/switch_modo_offline"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:thumbTint="@color/green_menu"
+                    app:thumbTint="@color/blue_menu"
                     app:trackTint="@color/lightblue_menu"/>
             </LinearLayout>
 
@@ -194,7 +195,7 @@
                     android:id="@+id/switch_sonidos"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:thumbTint="@color/green_menu"
+                    app:thumbTint="@color/blue_menu"
                     app:trackTint="@color/lightblue_menu"/>
             </LinearLayout>
 
@@ -233,7 +234,7 @@
                 android:layout_height="wrap_content"
                 android:text="Eliminar historial de traducciones"
                 android:textColor="@android:color/white"
-                app:backgroundTint="#FF5722"
+                app:backgroundTint="@color/orange_menu"
                 android:layout_marginBottom="24dp"/>
 
             <!-- Separador -->
@@ -281,7 +282,7 @@
                 android:layout_height="wrap_content"
                 android:text="Mi cuenta"
                 android:textColor="@android:color/white"
-                app:backgroundTint="@color/blue_menu"
+                app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="16dp"/>
 
             <!-- Botón cerrar sesión -->
@@ -291,7 +292,7 @@
                 android:layout_height="wrap_content"
                 android:text="Cerrar sesión"
                 android:textColor="@android:color/white"
-                app:backgroundTint="#FF9800"
+                app:backgroundTint="@color/orange_menu"
                 android:layout_marginBottom="16dp"/>
 
             <!-- Botón eliminar cuenta -->
@@ -357,7 +358,7 @@
                 android:layout_height="wrap_content"
                 android:text="Información de la aplicación"
                 android:textColor="@android:color/white"
-                app:backgroundTint="@color/blue_menu"
+                app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="32dp"/>
 
         </LinearLayout>
