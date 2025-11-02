@@ -19,6 +19,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.fragment.app.Fragment;
 import com.example.traduccioncotorra.DB.LanguageDAO;
+import com.example.traduccioncotorra.DB.HistorialDAO;
+import com.example.traduccioncotorra.DB.UserDAO;
+import com.example.traduccioncotorra.DB.TranslationTypeDAO;
 import java.util.List;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -27,6 +30,7 @@ import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
+import android.os.Handler;
 
 public class TraduccionTexto extends Fragment {
 
@@ -37,7 +41,9 @@ public class TraduccionTexto extends Fragment {
     private ImageButton btnFavorite;
     private ImageButton menuButtonConfig;
 
-    // ⭐ NUEVO: Variables para idiomas desde BD
+    // ⭐ NUEVO: Variables para idiomas seleccionados
+    private int sourceLanguageId = -1;
+    private int targetLanguageId = -1;
     private String sourceLanguageCode;
     private String targetLanguageCode;
     private String sourceLanguageTitle;
@@ -47,6 +53,20 @@ public class TraduccionTexto extends Fragment {
     // DAO para obtener idiomas
     private LanguageDAO languageDAO;
     private List<LanguageDAO.Language> idiomasDisponibles;
+
+    // ⭐ NUEVO: DAOs para historial
+    private HistorialDAO historialDAO;
+    private UserDAO userDAO;
+    private TranslationTypeDAO translationTypeDAO;
+    private int userId;
+    private int translationTypeId = 1; // 1 = Texto (por defecto)
+
+    // ⭐ NUEVO: Variables para debounce (evitar guardar mientras escribe)
+    private Handler debounceHandler;
+    private Runnable debounceRunnable;
+    private static final long DEBOUNCE_DELAY = 2000; // 2 segundos después de dejar de escribir
+    private String lastTranslatedText = "";
+    private String lastInputText = "";
 
     // Variables para traducción
     private TranslatorOptions translatorOptions;
@@ -62,6 +82,31 @@ public class TraduccionTexto extends Fragment {
 
         // Inicializar DAO
         languageDAO = new LanguageDAO(requireContext());
+
+        // ⭐ NUEVO: Inicializar DAOs para historial
+        historialDAO = new HistorialDAO(requireContext());
+        userDAO = new UserDAO(requireContext());
+        translationTypeDAO = new TranslationTypeDAO(requireContext());
+        userId = userDAO.obtenerUserIdActual(requireContext());
+
+        // Obtener el ID del tipo "Texto"
+        TranslationTypeDAO.TranslationType tipoTexto = translationTypeDAO.obtenerTipoPorNombre("Texto");
+        if (tipoTexto != null) {
+            translationTypeId = tipoTexto.idTypeTranslation;
+            Log.d(TAG, "Tipo de traducción 'Texto' ID: " + translationTypeId);
+        }
+
+        if (userId == -1) {
+            Log.w(TAG, "Usuario no identificado. Historial no se guardará.");
+            Toast.makeText(getContext(),
+                    "⚠️ Usuario no identificado. El historial no se guardará.",
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            Log.d(TAG, "Usuario actual: " + userId);
+        }
+
+        // ⭐ NUEVO: Inicializar handler para debounce
+        debounceHandler = new Handler();
 
         // Cargar idiomas de la BD
         cargarIdiomasDesdeDB();
@@ -163,22 +208,30 @@ public class TraduccionTexto extends Fragment {
 
         if (posEspanol != -1) {
             spinnerSourceLanguage.setSelection(posEspanol);
-            sourceLanguageCode = idiomasDisponibles.get(posEspanol).apiCode;
-            sourceLanguageTitle = idiomasDisponibles.get(posEspanol).name;
+            LanguageDAO.Language idioma = idiomasDisponibles.get(posEspanol);
+            sourceLanguageId = idioma.languageId;
+            sourceLanguageCode = idioma.apiCode;
+            sourceLanguageTitle = idioma.name;
         } else if (!idiomasDisponibles.isEmpty()) {
             spinnerSourceLanguage.setSelection(0);
-            sourceLanguageCode = idiomasDisponibles.get(0).apiCode;
-            sourceLanguageTitle = idiomasDisponibles.get(0).name;
+            LanguageDAO.Language idioma = idiomasDisponibles.get(0);
+            sourceLanguageId = idioma.languageId;
+            sourceLanguageCode = idioma.apiCode;
+            sourceLanguageTitle = idioma.name;
         }
 
         if (posIngles != -1) {
             spinnerResultLanguage.setSelection(posIngles);
-            targetLanguageCode = idiomasDisponibles.get(posIngles).apiCode;
-            targetLanguageTitle = idiomasDisponibles.get(posIngles).name;
+            LanguageDAO.Language idioma = idiomasDisponibles.get(posIngles);
+            targetLanguageId = idioma.languageId;
+            targetLanguageCode = idioma.apiCode;
+            targetLanguageTitle = idioma.name;
         } else if (idiomasDisponibles.size() > 1) {
             spinnerResultLanguage.setSelection(1);
-            targetLanguageCode = idiomasDisponibles.get(1).apiCode;
-            targetLanguageTitle = idiomasDisponibles.get(1).name;
+            LanguageDAO.Language idioma = idiomasDisponibles.get(1);
+            targetLanguageId = idioma.languageId;
+            targetLanguageCode = idioma.apiCode;
+            targetLanguageTitle = idioma.name;
         }
 
         // Crear traductor inicial
@@ -190,9 +243,10 @@ public class TraduccionTexto extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position < idiomasDisponibles.size()) {
                     LanguageDAO.Language idioma = idiomasDisponibles.get(position);
+                    sourceLanguageId = idioma.languageId;
                     sourceLanguageCode = idioma.apiCode;
                     sourceLanguageTitle = idioma.name;
-                    Log.d(TAG, "Idioma origen seleccionado: " + sourceLanguageTitle + " (" + sourceLanguageCode + ")");
+                    Log.d(TAG, "Idioma origen seleccionado: " + sourceLanguageTitle + " (ID: " + sourceLanguageId + ", API: " + sourceLanguageCode + ")");
                     crearTraductor();
                 }
             }
@@ -206,9 +260,10 @@ public class TraduccionTexto extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position < idiomasDisponibles.size()) {
                     LanguageDAO.Language idioma = idiomasDisponibles.get(position);
+                    targetLanguageId = idioma.languageId;
                     targetLanguageCode = idioma.apiCode;
                     targetLanguageTitle = idioma.name;
-                    Log.d(TAG, "Idioma destino seleccionado: " + targetLanguageTitle + " (" + targetLanguageCode + ")");
+                    Log.d(TAG, "Idioma destino seleccionado: " + targetLanguageTitle + " (ID: " + targetLanguageId + ", API: " + targetLanguageCode + ")");
                     crearTraductor();
                 }
             }
@@ -261,11 +316,22 @@ public class TraduccionTexto extends Fragment {
 
                 if (s.toString().isEmpty()) {
                     txtvTextoTraducido.setText("");
+                    // ⭐ Cancelar debounce si el texto está vacío
+                    cancelarDebounce();
                 } else {
                     traducirTexto();
                 }
             }
         });
+    }
+
+    /**
+     * ⭐ NUEVO: Cancela el debounce pendiente
+     */
+    private void cancelarDebounce() {
+        if (debounceHandler != null && debounceRunnable != null) {
+            debounceHandler.removeCallbacks(debounceRunnable);
+        }
     }
 
     private void crearTraductor() {
@@ -359,6 +425,9 @@ public class TraduccionTexto extends Fragment {
                     public void onSuccess(String textoTraducido) {
                         Log.d(TAG, "Traducción exitosa: " + textoTraducido);
                         txtvTextoTraducido.setText(textoTraducido);
+
+                        // ⭐ ACTUALIZADO: Programar guardado con debounce
+                        programarGuardadoConDebounce(textoOriginal, textoTraducido);
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -370,6 +439,87 @@ public class TraduccionTexto extends Fragment {
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    /**
+     * ⭐ NUEVO: Programa el guardado con debounce (espera 2 segundos después de dejar de escribir)
+     */
+    private void programarGuardadoConDebounce(String inputText, String resultText) {
+        // Cancelar cualquier guardado pendiente
+        cancelarDebounce();
+
+        // Guardar referencias para el debounce
+        lastInputText = inputText;
+        lastTranslatedText = resultText;
+
+        // Crear nuevo runnable
+        debounceRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Guardar solo si los textos siguen siendo los mismos (usuario dejó de escribir)
+                if (inputText.equals(lastInputText) && resultText.equals(lastTranslatedText)) {
+                    Log.d(TAG, "⏱️ Debounce completado. Guardando en historial...");
+                    guardarEnHistorial(inputText, resultText);
+                }
+            }
+        };
+
+        // Programar ejecución después del delay
+        debounceHandler.postDelayed(debounceRunnable, DEBOUNCE_DELAY);
+        Log.d(TAG, "⏱️ Debounce iniciado. Esperando " + DEBOUNCE_DELAY + "ms...");
+    }
+
+    /**
+     * ⭐ ACTUALIZADO: Guarda la traducción en el historial con IDs correctos
+     */
+    private void guardarEnHistorial(String textoOriginal, String textoTraducido) {
+        // Validar que tengamos un usuario válido
+        if (userId == -1) {
+            Log.w(TAG, "No se puede guardar historial: usuario no identificado");
+            return;
+        }
+
+        // Validar que los textos no estén vacíos
+        if (textoOriginal == null || textoOriginal.trim().isEmpty() ||
+                textoTraducido == null || textoTraducido.trim().isEmpty()) {
+            Log.w(TAG, "No se puede guardar historial: texto vacío");
+            return;
+        }
+
+        // Validar que tengamos IDs de idiomas válidos
+        if (sourceLanguageId == -1 || targetLanguageId == -1) {
+            Log.w(TAG, "No se puede guardar historial: IDs de idiomas no definidos");
+            return;
+        }
+
+        // Guardar en un hilo separado para no bloquear la UI
+        new Thread(() -> {
+            try {
+                // ⭐ Usar el método con IDs correctos
+                long resultado = historialDAO.insertarHistorialSiNoExiste(
+                        userId,
+                        sourceLanguageId,
+                        targetLanguageId,
+                        translationTypeId,
+                        textoOriginal,
+                        textoTraducido
+                );
+
+                if (resultado != -1) {
+                    Log.d(TAG, "✅ Historial guardado exitosamente. ID: " + resultado);
+                    Log.d(TAG, "   UserId: " + userId);
+                    Log.d(TAG, "   SourceLangId: " + sourceLanguageId + " (" + sourceLanguageTitle + ")");
+                    Log.d(TAG, "   TargetLangId: " + targetLanguageId + " (" + targetLanguageTitle + ")");
+                    Log.d(TAG, "   TypeId: " + translationTypeId);
+                } else {
+                    Log.d(TAG, "⚠️ Historial no guardado (posible duplicado reciente)");
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error al guardar historial", e);
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void abrirConfiguracion() {

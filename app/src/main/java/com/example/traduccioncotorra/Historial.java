@@ -153,7 +153,10 @@ public class Historial extends Fragment {
 
         // Idiomas
         TextView tvIdiomas = new TextView(getContext());
-        tvIdiomas.setText(item.idiomaOrigen + " → " + item.idiomaDestino);
+        String textIdiomas = (item.idiomaOrigen != null ? item.idiomaOrigen : "?") +
+                " → " +
+                (item.idiomaDestino != null ? item.idiomaDestino : "?");
+        tvIdiomas.setText(textIdiomas);
         tvIdiomas.setTextSize(12);
         tvIdiomas.setTextColor(getResources().getColor(android.R.color.darker_gray));
         LinearLayout.LayoutParams idiomasParams = new LinearLayout.LayoutParams(
@@ -179,17 +182,17 @@ public class Historial extends Fragment {
 
         tarjeta.addView(header);
 
-        // Texto original
+        // Texto original (InputText)
         TextView tvOriginal = new TextView(getContext());
-        tvOriginal.setText(item.textoOriginal);
+        tvOriginal.setText(item.inputText);
         tvOriginal.setTextSize(16);
         tvOriginal.setTextColor(getResources().getColor(android.R.color.black));
         tvOriginal.setPadding(0, 8, 0, 4);
         tarjeta.addView(tvOriginal);
 
-        // Texto traducido
+        // Texto traducido (ResultText)
         TextView tvTraducido = new TextView(getContext());
-        tvTraducido.setText("→ " + item.textoTraducido);
+        tvTraducido.setText("→ " + item.resultText);
         tvTraducido.setTextSize(16);
         tvTraducido.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
         tvTraducido.setPadding(0, 4, 0, 8);
@@ -197,7 +200,7 @@ public class Historial extends Fragment {
 
         // Fecha
         TextView tvFecha = new TextView(getContext());
-        tvFecha.setText(formatearFecha(item.fechaTraduccion));
+        tvFecha.setText(formatearFecha(item.translationDate));
         tvFecha.setTextSize(11);
         tvFecha.setTextColor(getResources().getColor(android.R.color.darker_gray));
         tvFecha.setAlpha(0.6f);
@@ -206,7 +209,7 @@ public class Historial extends Fragment {
         // Click en la tarjeta para copiar
         tarjeta.setOnClickListener(v -> {
             Toast.makeText(getContext(),
-                    "Traducción copiada:\n" + item.textoTraducido,
+                    "Traducción copiada:\n" + item.resultText,
                     Toast.LENGTH_SHORT).show();
         });
 
