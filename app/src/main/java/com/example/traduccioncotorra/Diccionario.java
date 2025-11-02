@@ -17,9 +17,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import com.example.traduccioncotorra.DB.WordDAO;
+import com.example.traduccioncotorra.DB.WordLanguageDAO;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,12 +32,17 @@ public class Diccionario extends Fragment {
     private TextView tvPalabrasDisponibles;
     private LinearLayout containerPalabras;
 
+    // DAOs para acceder a la base de datos
+    private WordDAO wordDAO;
+    private WordLanguageDAO wordLanguageDAO;
+
     // Lista para mantener referencia a todos los cards generados
     private List<CardView> todosLosCards;
-    private Map<CardView, String> cardPalabraMap;
+    private Map<CardView, Integer> cardPalabraMap; // Ahora usa WordId en lugar de palabra
 
-    // Simulación de diccionario con frases básicas
-    private Map<String, Map<String, String>> diccionario;
+    // Diccionario cargado desde la BD
+    private List<WordDAO.Word> palabras;
+    private Map<Integer, Map<String, String>> traducciones; // WordId -> {idioma -> traducción}
 
     @Nullable
     @Override
@@ -48,8 +54,12 @@ public class Diccionario extends Fragment {
         todosLosCards = new ArrayList<>();
         cardPalabraMap = new HashMap<>();
 
-        // Inicializar el diccionario
-        inicializarDiccionario();
+        // Inicializar DAOs
+        wordDAO = new WordDAO(requireContext());
+        wordLanguageDAO = new WordLanguageDAO(requireContext());
+
+        // Cargar diccionario desde la base de datos
+        cargarDiccionarioDesdeDB();
 
         // Inicializar vistas
         inicializarVistas(view);
@@ -71,50 +81,44 @@ public class Diccionario extends Fragment {
         containerPalabras = view.findViewById(R.id.container_palabras);
     }
 
-    private void inicializarDiccionario() {
-        // Usar LinkedHashMap para mantener el orden de inserción
-        diccionario = new LinkedHashMap<>();
+    /**
+     * Cargar el diccionario desde la base de datos
+     */
+    private void cargarDiccionarioDesdeDB() {
+        try {
+            // Obtener todas las palabras
+            palabras = wordDAO.obtenerTodasLasPalabras();
 
-        // Frases básicas en diferentes categorías
-        agregarFrase("Hola", "Hello", "Bonjour", "Hallo");
-        agregarFrase("Adiós", "Goodbye", "Au revoir", "Auf Wiedersehen");
-        agregarFrase("Por favor", "Please", "S'il vous plaît", "Bitte");
-        agregarFrase("Gracias", "Thank you", "Merci", "Danke");
-        agregarFrase("Sí", "Yes", "Oui", "Ja");
-        agregarFrase("No", "No", "Non", "Nein");
-        agregarFrase("Buenos días", "Good morning", "Bonjour", "Guten Morgen");
-        agregarFrase("Buenas noches", "Good night", "Bonne nuit", "Gute Nacht");
-        agregarFrase("¿Cómo estás?", "How are you?", "Comment allez-vous?", "Wie geht es dir?");
-        agregarFrase("Perdón", "Sorry", "Pardon", "Entschuldigung");
-        agregarFrase("Ayuda", "Help", "Aide", "Hilfe");
-        agregarFrase("Agua", "Water", "Eau", "Wasser");
-        agregarFrase("Comida", "Food", "Nourriture", "Essen");
-        agregarFrase("Baño", "Bathroom", "Toilettes", "Toilette");
-        agregarFrase("Salida", "Exit", "Sortie", "Ausgang");
-        agregarFrase("Entrada", "Entrance", "Entrée", "Eingang");
-        agregarFrase("Hotel", "Hotel", "Hôtel", "Hotel");
-        agregarFrase("Restaurante", "Restaurant", "Restaurant", "Restaurant");
-        agregarFrase("Hospital", "Hospital", "Hôpital", "Krankenhaus");
-        agregarFrase("Farmacia", "Pharmacy", "Pharmacie", "Apotheke");
-    }
+            // Obtener todas las traducciones
+            traducciones = new HashMap<>();
+            for (WordDAO.Word palabra : palabras) {
+                Map<String, String> traduccionesPalabra = wordLanguageDAO.obtenerTraduccionesComoMapa(palabra.wordId);
+                traducciones.put(palabra.wordId, traduccionesPalabra);
+            }
 
-    private void agregarFrase(String espanol, String ingles, String frances, String aleman) {
-        Map<String, String> traducciones = new HashMap<>();
-        traducciones.put("Español", espanol);
-        traducciones.put("Inglés", ingles);
-        traducciones.put("Francés", frances);
-        traducciones.put("Alemán", aleman);
+            // Actualizar el contador de palabras
+            if (tvPalabrasDisponibles != null) {
+                tvPalabrasDisponibles.setText(palabras.size() + " frases disponibles");
+            }
 
-        diccionario.put(espanol.toLowerCase(), traducciones);
+            // Mostrar mensaje si no hay palabras
+            if (palabras.isEmpty()) {
+                Toast.makeText(getContext(),
+                        "No hay palabras en el diccionario. Ve a Configuración → Admin Catálogos para agregar palabras.",
+                        Toast.LENGTH_LONG).show();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(getContext(),
+                    "Error al cargar el diccionario: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void generarTarjetasDinamicamente() {
         // Verificar que el contexto y el contenedor existan
-        if (getContext() == null) {
-            return;
-        }
-
-        if (containerPalabras == null) {
+        if (getContext() == null || containerPalabras == null) {
             return;
         }
 
@@ -123,31 +127,40 @@ public class Diccionario extends Fragment {
         todosLosCards.clear();
         cardPalabraMap.clear();
 
-        // Crear una tarjeta por cada entrada del diccionario
-        for (Map.Entry<String, Map<String, String>> entry : diccionario.entrySet()) {
-            String palabraClave = entry.getKey();
-            Map<String, String> traducciones = entry.getValue();
-
+        // Crear una tarjeta por cada palabra del diccionario
+        for (WordDAO.Word palabra : palabras) {
             try {
+                // Obtener traducciones de esta palabra
+                Map<String, String> traduccionesPalabra = traducciones.get(palabra.wordId);
+
+                if (traduccionesPalabra == null || traduccionesPalabra.isEmpty()) {
+                    continue; // Saltar palabras sin traducciones
+                }
+
                 // Crear la tarjeta
-                CardView card = crearTarjeta(traducciones);
+                CardView card = crearTarjeta(palabra, traduccionesPalabra);
 
                 // Guardar referencia
                 todosLosCards.add(card);
-                cardPalabraMap.put(card, palabraClave);
+                cardPalabraMap.put(card, palabra.wordId);
 
                 // Agregar al contenedor
                 containerPalabras.addView(card);
 
                 // Configurar listeners
-                configurarCardListeners(card, palabraClave);
+                configurarCardListeners(card, palabra.wordId);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
+        // Actualizar contador
+        if (tvPalabrasDisponibles != null) {
+            tvPalabrasDisponibles.setText("Encontradas " + todosLosCards.size() + " frases");
+        }
     }
 
-    private CardView crearTarjeta(Map<String, String> traducciones) {
+    private CardView crearTarjeta(WordDAO.Word palabra, Map<String, String> traduccionesPalabra) {
         // Crear el CardView
         CardView cardView = new CardView(getContext());
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
@@ -164,7 +177,6 @@ public class Diccionario extends Fragment {
         // Configurar el efecto ripple de forma segura
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                // Usar TypedValue para obtener el atributo correctamente
                 android.util.TypedValue outValue = new android.util.TypedValue();
                 getContext().getTheme().resolveAttribute(
                         android.R.attr.selectableItemBackground,
@@ -174,7 +186,6 @@ public class Diccionario extends Fragment {
                 cardView.setForeground(getContext().getDrawable(outValue.resourceId));
             }
         } catch (Exception e) {
-            // Si falla, continuar sin el foreground
             e.printStackTrace();
         }
 
@@ -183,22 +194,32 @@ public class Diccionario extends Fragment {
         innerLayout.setOrientation(LinearLayout.VERTICAL);
         innerLayout.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16));
 
-        // TextView del título (español)
+        // TextView del título (palabra principal)
         TextView tvTitulo = new TextView(getContext());
-        tvTitulo.setText(traducciones.get("Español"));
+        tvTitulo.setText(palabra.word);
         tvTitulo.setTextSize(18);
         tvTitulo.setTextColor(Color.BLACK);
         tvTitulo.setTypeface(null, Typeface.BOLD);
         innerLayout.addView(tvTitulo);
 
+        // TextView de la descripción (si existe)
+        if (palabra.description != null && !palabra.description.isEmpty()) {
+            TextView tvDescripcion = new TextView(getContext());
+            tvDescripcion.setText(palabra.description);
+            tvDescripcion.setTextSize(12);
+            tvDescripcion.setTextColor(Color.parseColor("#888888"));
+            LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            descParams.topMargin = dpToPx(2);
+            tvDescripcion.setLayoutParams(descParams);
+            innerLayout.addView(tvDescripcion);
+        }
+
         // TextView de las traducciones
         TextView tvTraducciones = new TextView(getContext());
-        String textoTraducciones = String.format(
-                "🇬🇧 %s  |  🇫🇷 %s  |  🇩🇪 %s",
-                traducciones.get("Inglés"),
-                traducciones.get("Francés"),
-                traducciones.get("Alemán")
-        );
+        String textoTraducciones = construirTextoTraducciones(traduccionesPalabra);
         tvTraducciones.setText(textoTraducciones);
         tvTraducciones.setTextSize(14);
         tvTraducciones.setTextColor(Color.parseColor("#666666"));
@@ -206,7 +227,7 @@ public class Diccionario extends Fragment {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        tvParams.topMargin = dpToPx(4);
+        tvParams.topMargin = dpToPx(8);
         tvTraducciones.setLayoutParams(tvParams);
         innerLayout.addView(tvTraducciones);
 
@@ -216,15 +237,50 @@ public class Diccionario extends Fragment {
         return cardView;
     }
 
-    private void configurarCardListeners(CardView card, String palabra) {
+    /**
+     * Construir el texto de traducciones con emojis de banderas
+     */
+    private String construirTextoTraducciones(Map<String, String> traduccionesPalabra) {
+        StringBuilder texto = new StringBuilder();
+
+        // Mapeo de idiomas a emojis de banderas
+        Map<String, String> emojis = new HashMap<>();
+        emojis.put("Español", "🇪🇸");
+        emojis.put("Inglés", "🇬🇧");
+        emojis.put("Francés", "🇫🇷");
+        emojis.put("Alemán", "🇩🇪");
+        emojis.put("Italiano", "🇮🇹");
+        emojis.put("Portugués", "🇵🇹");
+
+        int count = 0;
+        for (Map.Entry<String, String> entry : traduccionesPalabra.entrySet()) {
+            if (count > 0) {
+                texto.append("  |  ");
+            }
+
+            String idioma = entry.getKey();
+            String traduccion = entry.getValue();
+            String emoji = emojis.getOrDefault(idioma, "🌐");
+
+            texto.append(emoji).append(" ").append(traduccion);
+            count++;
+        }
+
+        return texto.toString();
+    }
+
+    private void configurarCardListeners(CardView card, int wordId) {
         // Click normal para mostrar definición
         card.setOnClickListener(v -> {
-            mostrarDefinicionCompleta(palabra);
+            mostrarDefinicionCompleta(wordId);
+
+            // Incrementar frecuencia de uso
+            wordDAO.incrementarFrecuencia(wordId);
         });
 
         // Long click para agregar a favoritos
         card.setOnLongClickListener(v -> {
-            marcarComoFavorito(palabra);
+            marcarComoFavorito(wordId);
             return true;
         });
     }
@@ -262,7 +318,7 @@ public class Diccionario extends Fragment {
                 noCoincidencesMessage.setVisibility(View.GONE);
             }
             if (tvPalabrasDisponibles != null) {
-                tvPalabrasDisponibles.setText("Frases básicas disponibles");
+                tvPalabrasDisponibles.setText(palabras.size() + " frases disponibles");
             }
             return;
         }
@@ -272,20 +328,30 @@ public class Diccionario extends Fragment {
         int coincidenciasCount = 0;
 
         // Filtrar cada card
-        for (Map.Entry<CardView, String> entry : cardPalabraMap.entrySet()) {
+        for (Map.Entry<CardView, Integer> entry : cardPalabraMap.entrySet()) {
             CardView card = entry.getKey();
-            String palabra = entry.getValue();
+            int wordId = entry.getValue();
 
-            // Buscar en el diccionario
-            Map<String, String> traducciones = diccionario.get(palabra);
             boolean coincide = false;
 
-            if (traducciones != null) {
-                // Buscar coincidencias en cualquier idioma
-                for (String traduccion : traducciones.values()) {
-                    if (traduccion.toLowerCase().contains(queryLower)) {
-                        coincide = true;
-                        break;
+            // Buscar en la palabra principal
+            WordDAO.Word palabra = obtenerPalabraPorId(wordId);
+            if (palabra != null) {
+                if (palabra.word.toLowerCase().contains(queryLower) ||
+                        (palabra.description != null && palabra.description.toLowerCase().contains(queryLower))) {
+                    coincide = true;
+                }
+            }
+
+            // Buscar en las traducciones
+            if (!coincide) {
+                Map<String, String> traduccionesPalabra = traducciones.get(wordId);
+                if (traduccionesPalabra != null) {
+                    for (String traduccion : traduccionesPalabra.values()) {
+                        if (traduccion.toLowerCase().contains(queryLower)) {
+                            coincide = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -337,33 +403,63 @@ public class Diccionario extends Fragment {
         }
     }
 
-    private void mostrarDefinicionCompleta(String palabra) {
-        String palabraLower = palabra.toLowerCase();
-
-        if (diccionario.containsKey(palabraLower)) {
-            Map<String, String> traducciones = diccionario.get(palabraLower);
-
-            StringBuilder definicion = new StringBuilder("📚 Traducciones de: " + palabra + "\n\n");
-            definicion.append("🇪🇸 Español: ").append(traducciones.get("Español")).append("\n");
-            definicion.append("🇬🇧 Inglés: ").append(traducciones.get("Inglés")).append("\n");
-            definicion.append("🇫🇷 Francés: ").append(traducciones.get("Francés")).append("\n");
-            definicion.append("🇩🇪 Alemán: ").append(traducciones.get("Alemán"));
-
-            Toast.makeText(getContext(), definicion.toString(), Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getContext(),
-                    "No se encontró la palabra: " + palabra,
-                    Toast.LENGTH_SHORT).show();
+    private void mostrarDefinicionCompleta(int wordId) {
+        WordDAO.Word palabra = obtenerPalabraPorId(wordId);
+        if (palabra == null) {
+            Toast.makeText(getContext(), "Palabra no encontrada", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        Map<String, String> traduccionesPalabra = traducciones.get(wordId);
+        if (traduccionesPalabra == null || traduccionesPalabra.isEmpty()) {
+            Toast.makeText(getContext(), "No hay traducciones disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        StringBuilder definicion = new StringBuilder("📚 Traducciones de: " + palabra.word + "\n\n");
+
+        if (palabra.description != null && !palabra.description.isEmpty()) {
+            definicion.append("ℹ️ ").append(palabra.description).append("\n\n");
+        }
+
+        // Agregar traducciones con emojis
+        Map<String, String> emojis = new HashMap<>();
+        emojis.put("Español", "🇪🇸");
+        emojis.put("Inglés", "🇬🇧");
+        emojis.put("Francés", "🇫🇷");
+        emojis.put("Alemán", "🇩🇪");
+        emojis.put("Italiano", "🇮🇹");
+        emojis.put("Portugués", "🇵🇹");
+
+        for (Map.Entry<String, String> entry : traduccionesPalabra.entrySet()) {
+            String idioma = entry.getKey();
+            String traduccion = entry.getValue();
+            String emoji = emojis.getOrDefault(idioma, "🌐");
+
+            definicion.append(emoji).append(" ").append(idioma).append(": ")
+                    .append(traduccion).append("\n");
+        }
+
+        Toast.makeText(getContext(), definicion.toString(), Toast.LENGTH_LONG).show();
     }
 
-    private void marcarComoFavorito(String palabra) {
-        if (getContext() != null) {
+    private void marcarComoFavorito(int wordId) {
+        WordDAO.Word palabra = obtenerPalabraPorId(wordId);
+        if (palabra != null && getContext() != null) {
             Toast.makeText(getContext(),
-                    "⭐ \"" + palabra + "\" agregada a favoritos\n" +
+                    "⭐ \"" + palabra.word + "\" agregada a favoritos\n" +
                             "(Mantén presionada una palabra para agregarla)",
                     Toast.LENGTH_LONG).show();
         }
+    }
+
+    private WordDAO.Word obtenerPalabraPorId(int wordId) {
+        for (WordDAO.Word palabra : palabras) {
+            if (palabra.wordId == wordId) {
+                return palabra;
+            }
+        }
+        return null;
     }
 
     private void abrirConfiguracion() {
@@ -390,5 +486,14 @@ public class Diccionario extends Fragment {
             return Math.round(dp * density);
         }
         return dp;
+    }
+
+    /**
+     * Recargar el diccionario (útil después de agregar/editar palabras)
+     */
+    public void recargarDiccionario() {
+        cargarDiccionarioDesdeDB();
+        generarTarjetasDinamicamente();
+        Toast.makeText(getContext(), "Diccionario actualizado", Toast.LENGTH_SHORT).show();
     }
 }

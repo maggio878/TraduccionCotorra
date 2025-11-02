@@ -21,18 +21,31 @@ public class LanguageDAO {
         public int languageId;
         public String name;
         public String code;
+        public String apiCode;
         public int isActive;
 
-        public Language(int languageId, String name, String code, int isActive) {
+        // Constructor completo
+        public Language(int languageId, String name, String code, String apiCode, int isActive) {
             this.languageId = languageId;
             this.name = name;
             this.code = code;
+            this.apiCode = apiCode;
             this.isActive = isActive;
         }
 
+        // Constructor para inserción
+        public Language(String name, String code, String apiCode) {
+            this.name = name;
+            this.code = code;
+            this.apiCode = apiCode;
+            this.isActive = 1;
+        }
+
+        // Constructor legacy (sin apiCode)
         public Language(String name, String code) {
             this.name = name;
             this.code = code;
+            this.apiCode = code; // Por defecto, apiCode = code
             this.isActive = 1;
         }
     }
@@ -48,6 +61,7 @@ public class LanguageDAO {
             ContentValues valores = new ContentValues();
             valores.put("Name", language.name);
             valores.put("Code", language.code);
+            valores.put("ApiCode", language.apiCode != null ? language.apiCode : language.code);
             valores.put("IsActive", language.isActive);
 
             resultado = managerDB.insertar(TABLE_NAME, valores);
@@ -79,6 +93,7 @@ public class LanguageDAO {
                             cursor.getInt(cursor.getColumnIndexOrThrow("LanguageId")),
                             cursor.getString(cursor.getColumnIndexOrThrow("Name")),
                             cursor.getString(cursor.getColumnIndexOrThrow("Code")),
+                            obtenerApiCodeSeguro(cursor),
                             cursor.getInt(cursor.getColumnIndexOrThrow("IsActive"))
                     );
                     idiomas.add(idioma);
@@ -116,6 +131,7 @@ public class LanguageDAO {
                             cursor.getInt(cursor.getColumnIndexOrThrow("LanguageId")),
                             cursor.getString(cursor.getColumnIndexOrThrow("Name")),
                             cursor.getString(cursor.getColumnIndexOrThrow("Code")),
+                            obtenerApiCodeSeguro(cursor),
                             cursor.getInt(cursor.getColumnIndexOrThrow("IsActive"))
                     );
                     idiomas.add(idioma);
@@ -144,14 +160,15 @@ public class LanguageDAO {
         try {
             managerDB.AbrirConexion();
 
-            String query = "SELECT * FROM " + TABLE_NAME + " WHERE Language_Id = ?";
+            String query = "SELECT * FROM " + TABLE_NAME + " WHERE LanguageId = ?";
             cursor = managerDB.consultar(query, new String[]{String.valueOf(languageId)});
 
             if (cursor != null && cursor.moveToFirst()) {
                 idioma = new Language(
-                        cursor.getInt(cursor.getColumnIndexOrThrow("Language_Id")),
+                        cursor.getInt(cursor.getColumnIndexOrThrow("LanguageId")),
                         cursor.getString(cursor.getColumnIndexOrThrow("Name")),
                         cursor.getString(cursor.getColumnIndexOrThrow("Code")),
+                        obtenerApiCodeSeguro(cursor),
                         cursor.getInt(cursor.getColumnIndexOrThrow("IsActive"))
                 );
             }
@@ -169,28 +186,26 @@ public class LanguageDAO {
     }
 
     /**
-     * READ - Buscar idiomas por nombre
+     * ⭐ NUEVO - Obtener idioma por ApiCode
      */
-    public List<Language> buscarIdiomasPorNombre(String nombre) {
-        List<Language> idiomas = new ArrayList<>();
+    public Language obtenerIdiomaPorApiCode(String apiCode) {
+        Language idioma = null;
         Cursor cursor = null;
 
         try {
             managerDB.AbrirConexion();
 
-            String query = "SELECT * FROM " + TABLE_NAME + " WHERE Name LIKE ? ORDER BY Name ASC";
-            cursor = managerDB.consultar(query, new String[]{"%" + nombre + "%"});
+            String query = "SELECT * FROM " + TABLE_NAME + " WHERE ApiCode = ? AND IsActive = 1";
+            cursor = managerDB.consultar(query, new String[]{apiCode});
 
             if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    Language idioma = new Language(
-                            cursor.getInt(cursor.getColumnIndexOrThrow("Language_Id")),
-                            cursor.getString(cursor.getColumnIndexOrThrow("Name")),
-                            cursor.getString(cursor.getColumnIndexOrThrow("Code")),
-                            cursor.getInt(cursor.getColumnIndexOrThrow("IsActive"))
-                    );
-                    idiomas.add(idioma);
-                } while (cursor.moveToNext());
+                idioma = new Language(
+                        cursor.getInt(cursor.getColumnIndexOrThrow("LanguageId")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("Name")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("Code")),
+                        obtenerApiCodeSeguro(cursor),
+                        cursor.getInt(cursor.getColumnIndexOrThrow("IsActive"))
+                );
             }
 
         } catch (Exception e) {
@@ -202,7 +217,7 @@ public class LanguageDAO {
             managerDB.CerrarConexion();
         }
 
-        return idiomas;
+        return idioma;
     }
 
     /**
@@ -217,12 +232,13 @@ public class LanguageDAO {
             ContentValues valores = new ContentValues();
             valores.put("Name", language.name);
             valores.put("Code", language.code);
+            valores.put("ApiCode", language.apiCode != null ? language.apiCode : language.code);
             valores.put("IsActive", language.isActive);
 
             filasActualizadas = managerDB.actualizar(
                     TABLE_NAME,
                     valores,
-                    "Language_Id = ?",
+                    "LanguageId = ?",
                     new String[]{String.valueOf(language.languageId)}
             );
 
@@ -250,7 +266,7 @@ public class LanguageDAO {
             filasActualizadas = managerDB.actualizar(
                     TABLE_NAME,
                     valores,
-                    "Language_Id = ?",
+                    "LanguageId = ?",
                     new String[]{String.valueOf(languageId)}
             );
 
@@ -274,7 +290,7 @@ public class LanguageDAO {
 
             filasEliminadas = managerDB.eliminar(
                     TABLE_NAME,
-                    "Language_Id = ?",
+                    "LanguageId = ?",
                     new String[]{String.valueOf(languageId)}
             );
 
@@ -317,6 +333,35 @@ public class LanguageDAO {
     }
 
     /**
+     * ⭐ NUEVO - Verificar si un ApiCode ya existe
+     */
+    public boolean existeApiCode(String apiCode) {
+        boolean existe = false;
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            String query = "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE ApiCode = ?";
+            cursor = managerDB.consultar(query, new String[]{apiCode});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                existe = cursor.getInt(0) > 0;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return existe;
+    }
+
+    /**
      * Obtener array de nombres de idiomas activos (para spinners)
      */
     public String[] obtenerNombresIdiomasActivos() {
@@ -340,7 +385,7 @@ public class LanguageDAO {
         try {
             managerDB.AbrirConexion();
 
-            String query = "SELECT Language_Id FROM " + TABLE_NAME + " WHERE Name = ?";
+            String query = "SELECT LanguageId FROM " + TABLE_NAME + " WHERE Name = ?";
             cursor = managerDB.consultar(query, new String[]{nombre});
 
             if (cursor != null && cursor.moveToFirst()) {
@@ -357,5 +402,28 @@ public class LanguageDAO {
         }
 
         return id;
+    }
+
+    /**
+     * ⭐ NUEVO - Método auxiliar para obtener ApiCode de forma segura
+     * Maneja compatibilidad con versiones antiguas de la BD
+     */
+    private String obtenerApiCodeSeguro(Cursor cursor) {
+        try {
+            int apiCodeIndex = cursor.getColumnIndex("ApiCode");
+            if (apiCodeIndex != -1) {
+                String apiCode = cursor.getString(apiCodeIndex);
+                // Si ApiCode es null, usar Code como fallback
+                if (apiCode == null || apiCode.isEmpty()) {
+                    return cursor.getString(cursor.getColumnIndexOrThrow("Code"));
+                }
+                return apiCode;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Fallback: usar Code si ApiCode no existe
+        return cursor.getString(cursor.getColumnIndexOrThrow("Code"));
     }
 }
