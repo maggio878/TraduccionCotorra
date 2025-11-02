@@ -360,4 +360,275 @@ public class HistorialDAO {
 
         return count;
     }
+    /**
+     * ⭐ NUEVO: Clase interna para estadísticas de idiomas
+     */
+    public static class IdiomaEstadistica {
+        public String nombreIdioma;
+        public int cantidad;
+
+        public IdiomaEstadistica(String nombreIdioma, int cantidad) {
+            this.nombreIdioma = nombreIdioma;
+            this.cantidad = cantidad;
+        }
+    }
+
+    /**
+     * ⭐ NUEVO: Clase interna para estadísticas de tipos
+     */
+    public static class TipoEstadistica {
+        public String tipoTraduccion;
+        public int cantidad;
+
+        public TipoEstadistica(String tipoTraduccion, int cantidad) {
+            this.tipoTraduccion = tipoTraduccion;
+            this.cantidad = cantidad;
+        }
+    }
+
+    /**
+     * ⭐ NUEVO: Obtener idiomas más usados (cuenta tanto origen como destino)
+     */
+    public List<IdiomaEstadistica> obtenerIdiomasMasUsados(int userId) {
+        List<IdiomaEstadistica> estadisticas = new ArrayList<>();
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            // Query que cuenta idiomas tanto de origen como de destino
+            String query = "SELECT l.Name as idioma, COUNT(*) as cantidad " +
+                    "FROM ( " +
+                    "  SELECT SourceLanguageId as LanguageId FROM " + TABLE_NAME + " WHERE UserId = ? " +
+                    "  UNION ALL " +
+                    "  SELECT TargetLanguageId as LanguageId FROM " + TABLE_NAME + " WHERE UserId = ? " +
+                    ") AS combined " +
+                    "INNER JOIN Language l ON combined.LanguageId = l.LanguageId " +
+                    "GROUP BY l.Name " +
+                    "ORDER BY cantidad DESC " +
+                    "LIMIT 5";
+
+            cursor = managerDB.consultar(query,
+                    new String[]{String.valueOf(userId), String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String nombreIdioma = cursor.getString(cursor.getColumnIndexOrThrow("idioma"));
+                    int cantidad = cursor.getInt(cursor.getColumnIndexOrThrow("cantidad"));
+
+                    estadisticas.add(new IdiomaEstadistica(nombreIdioma, cantidad));
+
+                    Log.d(TAG, "Idioma: " + nombreIdioma + " - Cantidad: " + cantidad);
+                } while (cursor.moveToNext());
+            }
+
+            Log.d(TAG, "Estadísticas de idiomas obtenidas: " + estadisticas.size() + " elementos");
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error al obtener estadísticas de idiomas", e);
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * ⭐ NUEVO: Obtener solo idiomas de ORIGEN más usados
+     */
+    public List<IdiomaEstadistica> obtenerIdiomasOrigenMasUsados(int userId) {
+        List<IdiomaEstadistica> estadisticas = new ArrayList<>();
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            String query = "SELECT l.Name as idioma, COUNT(*) as cantidad " +
+                    "FROM " + TABLE_NAME + " h " +
+                    "INNER JOIN Language l ON h.SourceLanguageId = l.LanguageId " +
+                    "WHERE h.UserId = ? " +
+                    "GROUP BY l.Name " +
+                    "ORDER BY cantidad DESC " +
+                    "LIMIT 5";
+
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String nombreIdioma = cursor.getString(cursor.getColumnIndexOrThrow("idioma"));
+                    int cantidad = cursor.getInt(cursor.getColumnIndexOrThrow("cantidad"));
+
+                    estadisticas.add(new IdiomaEstadistica(nombreIdioma, cantidad));
+                } while (cursor.moveToNext());
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error al obtener idiomas de origen", e);
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * ⭐ NUEVO: Obtener solo idiomas de DESTINO más usados
+     */
+    public List<IdiomaEstadistica> obtenerIdiomasDestinoMasUsados(int userId) {
+        List<IdiomaEstadistica> estadisticas = new ArrayList<>();
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            String query = "SELECT l.Name as idioma, COUNT(*) as cantidad " +
+                    "FROM " + TABLE_NAME + " h " +
+                    "INNER JOIN Language l ON h.TargetLanguageId = l.LanguageId " +
+                    "WHERE h.UserId = ? " +
+                    "GROUP BY l.Name " +
+                    "ORDER BY cantidad DESC " +
+                    "LIMIT 5";
+
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String nombreIdioma = cursor.getString(cursor.getColumnIndexOrThrow("idioma"));
+                    int cantidad = cursor.getInt(cursor.getColumnIndexOrThrow("cantidad"));
+
+                    estadisticas.add(new IdiomaEstadistica(nombreIdioma, cantidad));
+                } while (cursor.moveToNext());
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error al obtener idiomas de destino", e);
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * ⭐ NUEVO: Obtener tipos de traducción más usados
+     */
+    public List<TipoEstadistica> obtenerTiposMasUsados(int userId) {
+        List<TipoEstadistica> estadisticas = new ArrayList<>();
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            String query = "SELECT tt.Name as tipo, COUNT(*) as cantidad " +
+                    "FROM " + TABLE_NAME + " h " +
+                    "INNER JOIN TranslationType tt ON h.TranslationTypeId = tt.IdTypeTranslation " +
+                    "WHERE h.UserId = ? " +
+                    "GROUP BY tt.Name " +
+                    "ORDER BY cantidad DESC";
+
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String tipoTraduccion = cursor.getString(cursor.getColumnIndexOrThrow("tipo"));
+                    int cantidad = cursor.getInt(cursor.getColumnIndexOrThrow("cantidad"));
+
+                    estadisticas.add(new TipoEstadistica(tipoTraduccion, cantidad));
+
+                    Log.d(TAG, "Tipo: " + tipoTraduccion + " - Cantidad: " + cantidad);
+                } while (cursor.moveToNext());
+            }
+
+            Log.d(TAG, "Estadísticas de tipos obtenidas: " + estadisticas.size() + " elementos");
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error al obtener estadísticas de tipos", e);
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * ⭐ NUEVO: Obtener par de idiomas más usado (ej: Español -> Inglés)
+     */
+    public List<ParIdiomasEstadistica> obtenerParesIdiomasMasUsados(int userId) {
+        List<ParIdiomasEstadistica> estadisticas = new ArrayList<>();
+        Cursor cursor = null;
+
+        try {
+            managerDB.AbrirConexion();
+
+            String query = "SELECT " +
+                    "ls.Name as idiomaOrigen, " +
+                    "lt.Name as idiomaDestino, " +
+                    "COUNT(*) as cantidad " +
+                    "FROM " + TABLE_NAME + " h " +
+                    "INNER JOIN Language ls ON h.SourceLanguageId = ls.LanguageId " +
+                    "INNER JOIN Language lt ON h.TargetLanguageId = lt.LanguageId " +
+                    "WHERE h.UserId = ? " +
+                    "GROUP BY ls.Name, lt.Name " +
+                    "ORDER BY cantidad DESC " +
+                    "LIMIT 5";
+
+            cursor = managerDB.consultar(query, new String[]{String.valueOf(userId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String origen = cursor.getString(cursor.getColumnIndexOrThrow("idiomaOrigen"));
+                    String destino = cursor.getString(cursor.getColumnIndexOrThrow("idiomaDestino"));
+                    int cantidad = cursor.getInt(cursor.getColumnIndexOrThrow("cantidad"));
+
+                    estadisticas.add(new ParIdiomasEstadistica(origen, destino, cantidad));
+                } while (cursor.moveToNext());
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error al obtener pares de idiomas", e);
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            managerDB.CerrarConexion();
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * ⭐ NUEVO: Clase para estadísticas de pares de idiomas
+     */
+    public static class ParIdiomasEstadistica {
+        public String idiomaOrigen;
+        public String idiomaDestino;
+        public int cantidad;
+
+        public ParIdiomasEstadistica(String idiomaOrigen, String idiomaDestino, int cantidad) {
+            this.idiomaOrigen = idiomaOrigen;
+            this.idiomaDestino = idiomaDestino;
+            this.cantidad = cantidad;
+        }
+
+        public String getParIdiomas() {
+            return idiomaOrigen + " → " + idiomaDestino;
+        }
+    }
 }

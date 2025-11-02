@@ -52,5 +52,8 @@ dependencies {
     // Componentes de traduccion
     implementation("com.google.mlkit:translate:17.0.3")
 
+    // Componentes para graficas
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
 
 }
