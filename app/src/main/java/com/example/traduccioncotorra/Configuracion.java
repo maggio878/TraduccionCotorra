@@ -18,6 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
 import com.example.traduccioncotorra.DB.LanguageDAO;
@@ -33,6 +36,7 @@ public class Configuracion extends Fragment {
     private SwitchCompat switchSonidos;
     private MaterialButton btnEliminarHistorial;
     private MaterialButton btnVerHistorial;
+    private MaterialButton btnVerReportes;
     private MaterialButton btnCambiarContrasena;
     private MaterialButton btnEliminarCuenta;
     private MaterialButton btnInformacionApp;
@@ -141,6 +145,7 @@ public class Configuracion extends Fragment {
         btnEliminarHistorial = view.findViewById(R.id.btn_eliminar_historial);
         btnVerHistorial = view.findViewById(R.id.btn_ver_historial);
         btnCambiarContrasena = view.findViewById(R.id.btn_cambiar_contrasena);
+        btnVerReportes = view.findViewById(R.id.btn_ver_reportes);
         btnEliminarCuenta = view.findViewById(R.id.btn_eliminar_cuenta);
         btnInformacionApp = view.findViewById(R.id.btn_informacion_app);
         btnCuenta = view.findViewById(R.id.btn_cuenta);
@@ -298,6 +303,13 @@ public class Configuracion extends Fragment {
             mostrarDialogoCambiarContrasena();
         });
 
+
+        // Botón ver reportes
+        btnVerReportes.setOnClickListener(v -> {
+            navegarAReportes();
+        });
+
+
         // Botón eliminar cuenta
         btnEliminarCuenta.setOnClickListener(v -> {
             mostrarDialogoEliminarCuenta();
@@ -310,7 +322,7 @@ public class Configuracion extends Fragment {
                             "Tecnológico Nacional de México\n" +
                             "Campus Nogales\n\n" +
                             "Desarrollado por:\n" +
-                            "Regina Belem Perez Benítez\n" +
+                            "Regina Perez Benítez\n" +
                             "Jose Mario Luque Fernandez",
                     Toast.LENGTH_LONG).show();
         });
@@ -416,6 +428,15 @@ public class Configuracion extends Fragment {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+    private void navegarAReportes() {
+        ReportesFragment reportesFragment = new ReportesFragment();
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, reportesFragment)
+                .addToBackStack(null)
+                .commit();
     }
     private void mostrarDialogoEliminarCuenta() {
         // Crear layout del diálogo

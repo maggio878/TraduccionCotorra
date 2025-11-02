@@ -223,7 +223,7 @@
                 android:layout_height="wrap_content"
                 android:text="Ver historial de traducciones"
                 android:textColor="@android:color/white"
-                app:backgroundTint="@color/blue_menu"
+                app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="16dp"/>
 
             <!-- Botón eliminar historial -->
@@ -260,6 +260,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Cambiar contraseña"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/green_menu"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Botón ver reportes  -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ver_reportes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver reportes"
                 android:textColor="@android:color/white"
                 app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="16dp"/>
@@ -319,7 +329,7 @@
                 android:layout_height="wrap_content"
                 android:text="⚙️ Administrar Catálogos"
                 android:textColor="@android:color/white"
-                app:backgroundTint="#9C27B0"
+                app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="24dp"/>
 
             <!-- Separador -->
