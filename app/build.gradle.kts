@@ -51,9 +51,19 @@ dependencies {
 
     // Componentes de traduccion
     implementation("com.google.mlkit:translate:17.0.3")
+    //Identificacion de texto
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    // ML Kit Language ID (para detectar idioma)
+    implementation("com.google.mlkit:language-id:17.0.6")
 
     // Componentes para graficas
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
-
+    // Componentes para camara
+    val camerax_version = "1.4.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    implementation("androidx.camera:camera-extensions:${camerax_version}")
 }
