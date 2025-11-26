@@ -33,6 +33,13 @@ android {
 
 dependencies {
 
+// Para PDFs
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+// Para Word
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+// Para documentos
+    implementation("androidx.documentfile:documentfile:1.0.1")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
