@@ -27,6 +27,7 @@ public class TraduccionOverlayView extends View {
     private Paint captureBoxPaint;
     private Paint captureBoxBorderPaint;
     private Paint handlePaint;
+    private Paint analyzingPaint;
 
     private List<TranslationBox> translationBoxes = new ArrayList<>();
 
@@ -35,11 +36,12 @@ public class TraduccionOverlayView extends View {
 
     // ✅ Recuadro de captura ajustable
     private RectF captureBox;
-    private static final float MIN_BOX_SIZE = 200f;
-    private static final float HANDLE_SIZE = 60f;
+    private static final float MIN_BOX_SIZE = 300f; // ✅ Aumentado de 200f a 300f
+    private static final float HANDLE_SIZE = 70f; // ✅ Aumentado de 60f a 70f
 
     private boolean isDragging = false;
     private boolean isResizing = false;
+    private boolean isAnalyzing = false; // ✅ NUEVO: Estado de análisis
     private ResizeHandle activeHandle = ResizeHandle.NONE;
     private float lastTouchX, lastTouchY;
 
@@ -102,6 +104,13 @@ public class TraduccionOverlayView extends View {
         handlePaint.setStyle(Paint.Style.FILL);
         handlePaint.setAntiAlias(true);
 
+        // ✅ NUEVO: Paint para indicador de análisis
+        analyzingPaint = new Paint();
+        analyzingPaint.setColor(Color.parseColor("#FFFF00")); // Amarillo
+        analyzingPaint.setStyle(Paint.Style.STROKE);
+        analyzingPaint.setStrokeWidth(8f);
+        analyzingPaint.setAntiAlias(true);
+
         // Inicializar recuadro en el centro (se ajustará en onSizeChanged)
         captureBox = new RectF(0, 0, 400, 300);
     }
@@ -110,9 +119,9 @@ public class TraduccionOverlayView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
 
-        // Centrar el recuadro cuando se carga la vista
-        float boxWidth = Math.min(w * 0.7f, 600f);
-        float boxHeight = Math.min(h * 0.4f, 400f);
+        // ✅ MEJORADO: Recuadro más grande por defecto
+        float boxWidth = Math.min(w * 0.8f, 700f); // Aumentado de 0.7f a 0.8f
+        float boxHeight = Math.min(h * 0.5f, 500f); // Aumentado de 0.4f a 0.5f
         float left = (w - boxWidth) / 2;
         float top = (h - boxHeight) / 2;
 
@@ -135,7 +144,15 @@ public class TraduccionOverlayView extends View {
     }
 
     /**
-     * ✅ NUEVO: Configurar listener para cambios en el recuadro
+     * ✅ NUEVO: Establecer estado de análisis
+     */
+    public void setAnalyzing(boolean analyzing) {
+        this.isAnalyzing = analyzing;
+        invalidate();
+    }
+
+    /**
+     * ✅ Configurar listener para cambios en el recuadro
      */
     public void setOnBoxChangedListener(OnBoxChangedListener listener) {
         this.onBoxChangedListener = listener;
@@ -286,8 +303,13 @@ public class TraduccionOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // 1. Dibujar el recuadro de captura
-        canvas.drawRect(captureBox, captureBoxPaint);
+        // 1. Dibujar el recuadro de captura con indicador de análisis
+        if (isAnalyzing) {
+            // ✅ Borde amarillo parpadeante cuando está analizando
+            canvas.drawRect(captureBox, analyzingPaint);
+        } else {
+            canvas.drawRect(captureBox, captureBoxPaint);
+        }
         canvas.drawRect(captureBox, captureBoxBorderPaint);
 
         // 2. Dibujar handles (círculos en las esquinas)
@@ -304,7 +326,8 @@ public class TraduccionOverlayView extends View {
         instructionPaint.setTextAlign(Paint.Align.CENTER);
         instructionPaint.setShadowLayer(8f, 0f, 0f, Color.BLACK);
 
-        canvas.drawText("Apunta el texto aquí",
+        String instructionText = isAnalyzing ? "🔍 Analizando..." : "Apunta el texto aquí";
+        canvas.drawText(instructionText,
                 captureBox.centerX(),
                 captureBox.top - 20f,
                 instructionPaint);

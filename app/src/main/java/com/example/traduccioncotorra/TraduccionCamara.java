@@ -65,7 +65,19 @@ public class TraduccionCamara extends Fragment {
 
     private static final String TAG = "TRADUCCION_CAMARA";
     private static final int CAMERA_PERMISSION_REQUEST = 100;
-    private static final long ANALYSIS_DELAY_MS = 1500; // Analizar cada 1.5 segundos
+
+    // ✅ OPTIMIZADO: Delay ajustado para mejor estabilidad
+    private static final long ANALYSIS_DELAY_MS = 800; // Ajustado a 800ms
+
+    // ✅ Contador para forzar análisis periódico
+    private int analysisCounter = 0;
+    private static final int FORCE_ANALYSIS_EVERY = 4; // Cada 4 frames
+
+    // ✅ NUEVO: Variables para estabilización
+    private String ultimoTextoDetectado = "";
+    private String ultimaTraduccion = "";
+    private long ultimoCambioTexto = 0;
+    private static final long TEXTO_ESTABLE_MS = 2000; // Mantener traducción por 2 segundos
 
     // ========== VISTAS ==========
     private RelativeLayout translationLayout;
@@ -179,10 +191,11 @@ public class TraduccionCamara extends Fragment {
     }
 
     private void inicializarMLKit() {
+        // ✅ Usar reconocedor universal en lugar de solo Latin
         textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         languageIdentifier = LanguageIdentification.getClient();
         cameraExecutor = Executors.newSingleThreadExecutor();
-        Log.d(TAG, "✅ ML Kit inicializado");
+        Log.d(TAG, "✅ ML Kit inicializado con reconocimiento universal");
     }
 
     private void cargarIdiomasDesdeDB() {
@@ -276,6 +289,8 @@ public class TraduccionCamara extends Fragment {
                         ContextCompat.getColor(requireContext(), R.color.orange_menu)
                 );
                 overlayView.clear();
+                overlayView.setAnalyzing(false);
+                limpiarCacheTraduccion();
                 Toast.makeText(requireContext(),
                         "⏸️ Traducción pausada",
                         Toast.LENGTH_SHORT).show();
@@ -347,7 +362,7 @@ public class TraduccionCamara extends Fragment {
     }
 
     /**
-     * ⭐ ANÁLISIS CONTINUO DE CADA FRAME
+     * ⭐ ANÁLISIS CONTINUO OPTIMIZADO
      */
     @OptIn(markerClass = ExperimentalGetImage.class)
     private void analizarImagen(@NonNull ImageProxy imageProxy) {
@@ -356,13 +371,22 @@ public class TraduccionCamara extends Fragment {
             return;
         }
 
-        // Limitar frecuencia de análisis
+        // ✅ Sistema de análisis más inteligente
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastAnalysisTime < ANALYSIS_DELAY_MS) {
+        analysisCounter++;
+
+        // Analizar cada 800ms O forzar cada 4 frames
+        boolean shouldAnalyze = (currentTime - lastAnalysisTime >= ANALYSIS_DELAY_MS) ||
+                (analysisCounter >= FORCE_ANALYSIS_EVERY);
+
+        if (!shouldAnalyze) {
             imageProxy.close();
             return;
         }
+
+        // Resetear contador y tiempo
         lastAnalysisTime = currentTime;
+        analysisCounter = 0;
 
         if (imageProxy.getImage() == null) {
             imageProxy.close();
@@ -373,6 +397,9 @@ public class TraduccionCamara extends Fragment {
         imageWidth = imageProxy.getWidth();
         imageHeight = imageProxy.getHeight();
 
+        // ✅ Indicar visualmente que está analizando
+        mainHandler.post(() -> overlayView.setAnalyzing(true));
+
         InputImage image = InputImage.fromMediaImage(
                 imageProxy.getImage(),
                 imageProxy.getImageInfo().getRotationDegrees()
@@ -382,161 +409,236 @@ public class TraduccionCamara extends Fragment {
         textRecognizer.process(image)
                 .addOnSuccessListener(visionText -> {
                     procesarTextoDetectado(visionText);
+                    mainHandler.post(() -> overlayView.setAnalyzing(false));
                     imageProxy.close();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error OCR: " + e.getMessage());
+                    mainHandler.post(() -> overlayView.setAnalyzing(false));
                     imageProxy.close();
                 });
     }
 
     /**
-     * ⭐ PROCESAR SOLO TEXTO COMPLETAMENTE DENTRO DEL RECUADRO (CORREGIDO)
+     * ⭐ PROCESAR TEXTO CON ESTABILIZACIÓN (CORREGIDO)
      */
     private void procesarTextoDetectado(Text visionText) {
         List<Text.TextBlock> blocks = visionText.getTextBlocks();
 
         if (blocks.isEmpty()) {
-            mainHandler.post(() -> overlayView.clear());
+            // Solo limpiar si ha pasado tiempo suficiente
+            long tiempoSinTexto = System.currentTimeMillis() - ultimoCambioTexto;
+            if (tiempoSinTexto > TEXTO_ESTABLE_MS) {
+                mainHandler.post(() -> overlayView.clear());
+                ultimoTextoDetectado = "";
+                ultimaTraduccion = "";
+            }
             return;
         }
 
         // ✅ Obtener el recuadro de captura en coordenadas de imagen
         Rect captureRect = overlayView.getCaptureBoxInImageCoords();
 
-        Log.d(TAG, "📦 Recuadro captura: " + captureRect.toString());
-
         overlayView.setImageDimensions(imageWidth, imageHeight);
 
-        List<Text.TextBlock> blocksWithinBox = new ArrayList<>();
-        StringBuilder textoCompleto = new StringBuilder();
+        // ✅ Recolectar TODO el texto dentro o que intersecta el recuadro
+        List<String> textosDetectados = new ArrayList<>();
 
-        // ✅ PASO 1: Filtrar bloques que están COMPLETAMENTE dentro del recuadro
         for (Text.TextBlock block : blocks) {
-            String originalText = block.getText();
-            Rect boundingBox = block.getBoundingBox();
+            for (Text.Line line : block.getLines()) {
+                String lineText = line.getText();
+                Rect lineBoundingBox = line.getBoundingBox();
 
-            if (originalText.isEmpty() || boundingBox == null) {
-                continue;
-            }
-
-            // ✅ VERIFICAR QUE EL BLOQUE ESTÉ COMPLETAMENTE DENTRO DEL RECUADRO
-            if (isRectCompletelyInside(boundingBox, captureRect)) {
-                blocksWithinBox.add(block);
-
-                if (textoCompleto.length() > 0) {
-                    textoCompleto.append(" ");
+                if (lineText.isEmpty() || lineBoundingBox == null) {
+                    continue;
                 }
-                textoCompleto.append(originalText);
 
-                Log.d(TAG, "✅ Texto dentro del recuadro: " + originalText);
-            } else {
-                Log.d(TAG, "⏭️ Texto ignorado (fuera del recuadro): " + originalText);
+                if (isTextInCaptureArea(lineBoundingBox, captureRect)) {
+                    textosDetectados.add(lineText);
+                }
             }
         }
 
-        // ✅ PASO 2: Procesar solo si hay texto válido
-        if (textoCompleto.length() > 0) {
-            String textoFinal = textoCompleto.toString().trim();
+        // ✅ Procesar el texto combinado
+        if (!textosDetectados.isEmpty()) {
+            String textoCompleto = String.join(" ", textosDetectados).trim();
 
-            // Verificar cache
-            if (translationCache.containsKey(textoFinal)) {
-                String cachedTranslation = translationCache.get(textoFinal);
+            // ✅ ESTABILIZACIÓN: Solo procesar si el texto cambió significativamente
+            if (textoHaCambiado(textoCompleto)) {
+                Log.d(TAG, "📄 Texto nuevo detectado: " + textoCompleto);
+                ultimoTextoDetectado = textoCompleto;
+                ultimoCambioTexto = System.currentTimeMillis();
 
-                List<TranslationBox> translationBoxes = new ArrayList<>();
-                translationBoxes.add(new TranslationBox(
-                        captureRect, textoFinal, cachedTranslation
-                ));
+                // Verificar cache
+                if (translationCache.containsKey(textoCompleto)) {
+                    String cachedTranslation = translationCache.get(textoCompleto);
+                    ultimaTraduccion = cachedTranslation;
 
-                mainHandler.post(() -> overlayView.setTranslationBoxes(translationBoxes));
+                    List<TranslationBox> translationBoxes = new ArrayList<>();
+                    translationBoxes.add(new TranslationBox(
+                            captureRect, textoCompleto, cachedTranslation
+                    ));
 
-                Log.d(TAG, "💾 Usando traducción en cache");
+                    mainHandler.post(() -> overlayView.setTranslationBoxes(translationBoxes));
+
+                    Log.d(TAG, "💾 Usando traducción en cache");
+                } else {
+                    // Detectar idioma y traducir
+                    List<TranslationBox> translationBoxes = new ArrayList<>();
+                    detectarIdiomaYTraducir(textoCompleto, captureRect, translationBoxes);
+                }
             } else {
-                // Detectar idioma y traducir
-                List<TranslationBox> translationBoxes = new ArrayList<>();
-                detectarIdiomaYTraducir(textoFinal, captureRect, translationBoxes);
+                // ✅ Texto no cambió, mantener traducción actual
+                if (!ultimaTraduccion.isEmpty()) {
+                    List<TranslationBox> translationBoxes = new ArrayList<>();
+                    translationBoxes.add(new TranslationBox(
+                            captureRect, ultimoTextoDetectado, ultimaTraduccion
+                    ));
+                    mainHandler.post(() -> overlayView.setTranslationBoxes(translationBoxes));
+                }
+                Log.d(TAG, "⏸️ Texto sin cambios, manteniendo traducción actual");
             }
         } else {
             // No hay texto dentro del recuadro
-            mainHandler.post(() -> overlayView.clear());
-            Log.d(TAG, "📭 No hay texto dentro del recuadro");
+            long tiempoSinTexto = System.currentTimeMillis() - ultimoCambioTexto;
+            if (tiempoSinTexto > TEXTO_ESTABLE_MS) {
+                mainHandler.post(() -> overlayView.clear());
+                ultimoTextoDetectado = "";
+                ultimaTraduccion = "";
+                Log.d(TAG, "📭 No hay texto dentro del recuadro (limpiando)");
+            }
         }
     }
 
     /**
-     * ✅ NUEVO: Verificar que un rectángulo esté COMPLETAMENTE dentro de otro
+     * ✅ NUEVO: Verificación más inteligente de texto en área de captura
      */
-    private boolean isRectCompletelyInside(Rect inner, Rect outer) {
-        // Agregar un margen de 10 píxeles para ser más estricto
-        int margin = 10;
+    private boolean isTextInCaptureArea(Rect textRect, Rect captureRect) {
+        // Calcular el área de intersección
+        Rect intersection = new Rect();
+        boolean intersects = intersection.setIntersect(textRect, captureRect);
 
-        Rect strictOuter = new Rect(
-                outer.left + margin,
-                outer.top + margin,
-                outer.right - margin,
-                outer.bottom - margin
-        );
+        if (!intersects) {
+            return false;
+        }
 
-        // El rectángulo interior debe estar completamente dentro del exterior
-        return strictOuter.contains(inner.left, inner.top) &&
-                strictOuter.contains(inner.right, inner.bottom);
+        // Calcular qué porcentaje del texto está dentro del recuadro
+        float textArea = textRect.width() * textRect.height();
+        float intersectionArea = intersection.width() * intersection.height();
+        float overlapPercentage = (intersectionArea / textArea) * 100;
+
+        // ✅ Aceptar si al menos el 30% del texto está dentro
+        return overlapPercentage >= 30;
     }
 
     /**
-     * ⭐ DETECTAR IDIOMA Y TRADUCIR (MEJORADO)
+     * ✅ NUEVO: Verificar si el texto cambió significativamente
+     */
+    private boolean textoHaCambiado(String nuevoTexto) {
+        if (ultimoTextoDetectado.isEmpty()) {
+            return true;
+        }
+
+        // Normalizar textos (quitar espacios extra, minúsculas)
+        String textoNormalizado = nuevoTexto.trim().toLowerCase().replaceAll("\\s+", " ");
+        String ultimoNormalizado = ultimoTextoDetectado.trim().toLowerCase().replaceAll("\\s+", " ");
+
+        // Calcular similitud (Levenshtein simplificado)
+        int diferencia = calcularDiferencia(textoNormalizado, ultimoNormalizado);
+        float similitud = 1.0f - ((float) diferencia / Math.max(textoNormalizado.length(), ultimoNormalizado.length()));
+
+        // Solo considerar cambio si la similitud es menor al 85%
+        boolean cambio = similitud < 0.85f;
+
+        if (cambio) {
+            Log.d(TAG, "🔄 Cambio detectado: similitud=" + (int)(similitud * 100) + "%");
+        }
+
+        return cambio;
+    }
+
+    /**
+     * ✅ NUEVO: Calcular diferencia entre textos (distancia de Levenshtein)
+     */
+    private int calcularDiferencia(String s1, String s2) {
+        int len1 = s1.length();
+        int len2 = s2.length();
+
+        int[][] dp = new int[len1 + 1][len2 + 1];
+
+        for (int i = 0; i <= len1; i++) {
+            dp[i][0] = i;
+        }
+
+        for (int j = 0; j <= len2; j++) {
+            dp[0][j] = j;
+        }
+
+        for (int i = 1; i <= len1; i++) {
+            for (int j = 1; j <= len2; j++) {
+                int cost = (s1.charAt(i - 1) == s2.charAt(j - 1)) ? 0 : 1;
+                dp[i][j] = Math.min(
+                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
+                        dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+
+        return dp[len1][len2];
+    }
+
+    /**
+     * ⭐ DETECTAR IDIOMA CON CACHE
      */
     private void detectarIdiomaYTraducir(String texto, Rect boundingBox,
                                          List<TranslationBox> boxes) {
+
+        Log.d(TAG, "🔍 Detectando idioma para: " + texto);
+
         languageIdentifier.identifyLanguage(texto)
                 .addOnSuccessListener(languageCode -> {
                     if (languageCode.equals("und")) {
-                        Log.w(TAG, "⚠️ Idioma no detectado para: " + texto);
-
-                        // Mostrar mensaje en el overlay
-                        boxes.clear();
-                        boxes.add(new TranslationBox(
-                                boundingBox, texto, "⚠️ No se pudo detectar el idioma"
-                        ));
-                        mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+                        Log.w(TAG, "⚠️ Idioma no detectado, intentando con inglés por defecto");
+                        traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
                         return;
                     }
 
-                    Log.d(TAG, "🌍 Idioma detectado: " + languageCode + " (" + texto + ")");
+                    Log.d(TAG, "🌍 Idioma detectado: " + languageCode);
 
-                    // Si el idioma detectado es el mismo que el destino, no traducir
                     if (languageCode.equals(targetLanguageApiCode)) {
                         Log.d(TAG, "⏭️ Texto ya está en idioma destino");
 
+                        // ✅ Guardar en estado
+                        ultimaTraduccion = "✓ Ya está en " + obtenerNombreIdioma(targetLanguageApiCode);
+
                         boxes.clear();
                         boxes.add(new TranslationBox(
-                                boundingBox, texto, "✓ Ya está en " + obtenerNombreIdioma(targetLanguageApiCode)
+                                boundingBox, texto, ultimaTraduccion
                         ));
                         mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
                         return;
                     }
 
-                    // Traducir con el idioma detectado
                     traducirConIdiomaOrigen(texto, languageCode, boundingBox, boxes);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error detectando idioma: " + e.getMessage());
-
-                    // Mostrar error en el overlay
-                    boxes.clear();
-                    boxes.add(new TranslationBox(
-                            boundingBox, texto, "❌ Error al detectar idioma"
-                    ));
-                    mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+                    traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
                 });
     }
 
     /**
-     * ⭐ TRADUCIR CON IDIOMA DE ORIGEN ESPECÍFICO (MEJORADO CON MEJOR MANEJO DE ERRORES)
+     * ⭐ TRADUCIR CON ACTUALIZACIÓN DE ESTADO
      */
     private void traducirConIdiomaOrigen(String texto, String sourceLanguage,
                                          Rect boundingBox,
                                          List<TranslationBox> boxes) {
-        // Crear traductor temporal para este par de idiomas
+
+        if (texto.trim().isEmpty()) {
+            Log.w(TAG, "⚠️ Texto vacío, ignorando traducción");
+            return;
+        }
+
         TranslatorOptions options = new TranslatorOptions.Builder()
                 .setSourceLanguage(sourceLanguage)
                 .setTargetLanguage(targetLanguageApiCode)
@@ -545,40 +647,42 @@ public class TraduccionCamara extends Fragment {
         Translator tempTranslator = Translation.getClient(options);
 
         DownloadConditions conditions = new DownloadConditions.Builder()
-                .requireWifi()
                 .build();
 
         Log.d(TAG, "🔄 Iniciando traducción: " + sourceLanguage + " → " + targetLanguageApiCode);
+
+        // ✅ Mostrar indicador de carga SOLO si no hay traducción previa
+        if (ultimaTraduccion.isEmpty()) {
+            boxes.clear();
+            boxes.add(new TranslationBox(
+                    boundingBox, texto, "⏳ Traduciendo..."
+            ));
+            mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+        }
 
         tempTranslator.downloadModelIfNeeded(conditions)
                 .addOnSuccessListener(unused -> {
                     Log.d(TAG, "✅ Modelo descargado/disponible");
 
-                    // Traducir
                     tempTranslator.translate(texto)
                             .addOnSuccessListener(translatedText -> {
                                 Log.d(TAG, "✅ Traducción exitosa: " + texto + " → " + translatedText);
 
-                                // Guardar en cache
+                                // ✅ Guardar estado
                                 translationCache.put(texto, translatedText);
+                                ultimaTraduccion = translatedText;
 
-                                // ✅ LIMPIAR lista antes de agregar nueva traducción
                                 boxes.clear();
-
-                                // Agregar la traducción
                                 boxes.add(new TranslationBox(
                                         boundingBox, texto, translatedText
                                 ));
 
-                                // ✅ Actualizar UI en el hilo principal
                                 mainHandler.post(() -> {
                                     overlayView.setTranslationBoxes(new ArrayList<>(boxes));
                                 });
 
-                                // Guardar en historial
                                 guardarEnHistorial(texto, translatedText, sourceLanguage);
 
-                                // Cerrar traductor temporal
                                 tempTranslator.close();
                             })
                             .addOnFailureListener(e -> {
@@ -595,13 +699,12 @@ public class TraduccionCamara extends Fragment {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Modelo no disponible: " + sourceLanguage + "→" + targetLanguageApiCode);
-                    Log.e(TAG, "❌ Detalles: " + e.getMessage());
 
                     boxes.clear();
                     boxes.add(new TranslationBox(
                             boundingBox,
                             texto,
-                            "⚠️ Conecta a WiFi para descargar modelo\n" +
+                            "⚠️ Descargando modelo...\n" +
                                     sourceLanguage + " → " + targetLanguageApiCode
                     ));
 
@@ -609,7 +712,7 @@ public class TraduccionCamara extends Fragment {
                         overlayView.setTranslationBoxes(new ArrayList<>(boxes));
 
                         Toast.makeText(requireContext(),
-                                "❌ Modelo " + sourceLanguage + "→" + targetLanguageApiCode + " no disponible",
+                                "⏳ Descargando modelo " + sourceLanguage + "→" + targetLanguageApiCode,
                                 Toast.LENGTH_SHORT).show();
                     });
 
@@ -618,7 +721,7 @@ public class TraduccionCamara extends Fragment {
     }
 
     /**
-     * ⭐ GUARDAR EN HISTORIAL CON IDIOMA DE ORIGEN DETECTADO
+     * ⭐ GUARDAR EN HISTORIAL
      */
     private void guardarEnHistorial(String textoOriginal, String textoTraducido, String sourceLanguageCode) {
         if (userId == -1 || textoOriginal.isEmpty() || textoTraducido.isEmpty()) {
@@ -648,7 +751,7 @@ public class TraduccionCamara extends Fragment {
     }
 
     /**
-     * ✅ NUEVO: Obtener nombre legible del idioma
+     * ✅ Obtener nombre legible del idioma
      */
     private String obtenerNombreIdioma(String apiCode) {
         for (LanguageDAO.Language lang : idiomasDisponibles) {
@@ -660,12 +763,15 @@ public class TraduccionCamara extends Fragment {
     }
 
     /**
-     * ✅ NUEVO: Limpiar cache cuando se mueve el recuadro
+     * ✅ Limpiar cache y estado
      */
     public void limpiarCacheTraduccion() {
         translationCache.clear();
         overlayView.clear();
-        Log.d(TAG, "🧹 Cache limpiado");
+        ultimoTextoDetectado = "";
+        ultimaTraduccion = "";
+        ultimoCambioTexto = 0;
+        Log.d(TAG, "🧹 Cache y estado limpiado");
     }
 
     private void abrirConfiguracion() {
