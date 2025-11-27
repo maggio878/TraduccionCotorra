@@ -7,6 +7,7 @@
     tools:context=".TraduccionTexto"
     android:id="@+id/translation_frag"
     android:background="@drawable/app_bg_removed">
+
     <!-- Barra superior con título -->
     <RelativeLayout
         android:id="@+id/top_bar"
@@ -14,6 +15,7 @@
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
         android:padding="20dp">
+
         <ImageView
             android:id="@+id/menu_icon"
             android:layout_width="40dp"
@@ -22,6 +24,7 @@
             android:layout_centerVertical="true"
             android:src="@drawable/parrot2"
             android:contentDescription="Logo" />
+
         <ImageButton
             android:id="@+id/menu_button_config"
             android:layout_width="50dp"
@@ -31,6 +34,7 @@
             android:src="@drawable/settings2"
             android:background="@android:color/transparent"
             android:contentDescription="Menú" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -41,91 +45,135 @@
             android:textSize="22sp"
             android:textStyle="bold"/>
     </RelativeLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/top_bar"
+        android:layout_above="@id/bottom_navigation"
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Text input area - takes 40% of space -->
-        <EditText
-            android:id="@+id/txt_TextoIngresado"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2"
-            android:background="@null"
-            android:gravity="top|start"
-            android:hint="Escribe o pega el texto aquí"
-            android:inputType="textMultiLine"
-            android:padding="8dp"
-            android:textSize="16sp" />
-
-        <!-- Translation area - takes 40% of space -->
+        <!-- ✅ Text input area con fondo visible -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="2">
+            android:layout_weight="2"
+            android:background="@drawable/text_input_background"
+            android:elevation="2dp">
+
+            <EditText
+                android:id="@+id/txt_TextoIngresado"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:gravity="top|start"
+                android:hint="Escribe o pega el texto aquí"
+                android:textColorHint="#757575"
+                android:inputType="textMultiLine"
+                android:padding="16dp"
+                android:textSize="16sp"
+                android:textColor="@android:color/black"
+                android:scrollbars="vertical" />
+        </FrameLayout>
+
+        <!-- Spacer pequeño -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <!-- ✅ Translation area con fondo visible -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:background="@drawable/text_output_background"
+            android:elevation="2dp">
 
             <TextView
                 android:id="@+id/txtv_TextoTraducido"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@android:color/transparent"
                 android:gravity="top|start"
                 android:hint="Traducción"
-                android:padding="8dp"
-                android:textSize="16sp" />
+                android:textColorHint="#757575"
+                android:padding="16dp"
+                android:textSize="16sp"
+                android:textColor="@android:color/black"
+                android:scrollbars="vertical" />
 
+            <!-- ✅ Botón de favorito mejorado -->
             <ImageButton
                 android:id="@+id/btn_favorite"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_gravity="top|end"
                 android:layout_margin="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/favorite"
+                android:background="@drawable/rounded_button_bg"
+                android:src="@drawable/ic_star_outline"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
                 android:contentDescription="Añadir a favoritos" />
         </FrameLayout>
 
-        <!-- Spacer - takes 5% of space -->
+        <!-- Spacer -->
         <Space
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.5" />
+            android:layout_height="16dp" />
 
-        <!-- Spinner area - takes 15% of space -->
+        <!-- ✅ Spinner area con botón de intercambio -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center">
+            android:gravity="center_vertical"
+            android:padding="8dp">
 
+            <!-- Spinner idioma origen -->
             <androidx.appcompat.widget.AppCompatSpinner
                 android:id="@+id/spinner_source_language"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/rounded_spinner_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:contentDescription="Idioma de origen" />
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_send"
-                android:layout_marginHorizontal="16dp"
-                android:contentDescription="Traducir" />
+            <!-- ✅ Botón de intercambio de idiomas -->
+            <ImageButton
+                android:id="@+id/btn_swap_languages"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/swap_button_bg"
+                android:src="@drawable/ic_swap"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Intercambiar idiomas" />
 
+            <!-- Spinner idioma destino -->
             <androidx.appcompat.widget.AppCompatSpinner
                 android:id="@+id/spinner_result_language"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/rounded_spinner_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:contentDescription="Idioma de destino" />
         </LinearLayout>
-        <!-- leave space for the bottom menu, change the favorite button, add the swap button, change the side bar menu button-->
     </LinearLayout>
+
+    <!-- ✅ Espacio para el menú inferior (si lo tienes) -->
+    <View
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_alignParentBottom="true"
+        android:visibility="gone" />
 
 </RelativeLayout>
 
