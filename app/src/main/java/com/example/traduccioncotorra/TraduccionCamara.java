@@ -33,6 +33,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.traduccioncotorra.TraduccionOverlayView;
+import com.example.traduccioncotorra.TraduccionOverlayView.TranslationBox;
 import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
@@ -99,6 +100,10 @@ public class TraduccionCamara extends Fragment {
     private String targetLanguageApiCode = "es";
     private boolean modeloDescargado = false;
 
+    // ========== DIMENSIONES DE IMAGEN ==========
+    private int imageWidth = 0;
+    private int imageHeight = 0;
+
     // Cache de traducciones para evitar repeticiones
     private Map<String, String> translationCache = new HashMap<>();
 
@@ -145,6 +150,9 @@ public class TraduccionCamara extends Fragment {
                 RelativeLayout.LayoutParams.MATCH_PARENT
         );
         overlayView.setLayoutParams(overlayParams);
+
+        // ✅ Configurar callback para limpiar cache cuando se mueve el recuadro
+        overlayView.setOnBoxChangedListener(this::limpiarCacheTraduccion);
 
         // Agregar vistas (orden: PreviewView primero, Overlay encima)
         translationLayout.addView(previewView, 0);
@@ -227,8 +235,7 @@ public class TraduccionCamara extends Fragment {
                 configurarTraductor(targetLanguageApiCode);
 
                 // Limpiar cache y overlay
-                translationCache.clear();
-                overlayView.clear();
+                limpiarCacheTraduccion();
             }
 
             @Override
@@ -237,54 +244,22 @@ public class TraduccionCamara extends Fragment {
     }
 
     private void configurarTraductor(String targetLanguageCode) {
+        // Solo cerrar el traductor anterior si existe
         if (translator != null) {
             translator.close();
             translator = null;
-            modeloDescargado = false;
         }
 
-        // Por ahora, fuente fija en inglés (luego lo haremos automático)
-        TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage("en") // Inglés como fuente por ahora
-                .setTargetLanguage(targetLanguageCode)
-                .build();
+        modeloDescargado = true; // Ya no necesitamos pre-descargar
 
-        translator = Translation.getClient(options);
-
-        DownloadConditions conditions = new DownloadConditions.Builder()
-                .requireWifi()
-                .build();
-
+        Log.d(TAG, "✅ Traductor configurado para destino: " + targetLanguageCode);
         Toast.makeText(requireContext(),
-                "⏳ Descargando modelo de traducción...",
+                "✅ Listo para traducir a " + obtenerNombreIdioma(targetLanguageCode),
                 Toast.LENGTH_SHORT).show();
-
-        translator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener(unused -> {
-                    modeloDescargado = true;
-                    Log.d(TAG, "✅ Modelo descargado: en -> " + targetLanguageCode);
-                    Toast.makeText(requireContext(),
-                            "✅ Modelo listo",
-                            Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    modeloDescargado = false;
-                    Log.e(TAG, "❌ Error modelo: " + e.getMessage());
-                    Toast.makeText(requireContext(),
-                            "❌ Conecta WiFi para descargar modelo",
-                            Toast.LENGTH_LONG).show();
-                });
     }
 
     private void configurarListeners() {
         btnToggleAnalysis.setOnClickListener(v -> {
-            if (!modeloDescargado) {
-                Toast.makeText(requireContext(),
-                        "⏳ Espera a que se descargue el modelo...",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             isAnalyzing = !isAnalyzing;
 
             if (isAnalyzing) {
@@ -293,7 +268,7 @@ public class TraduccionCamara extends Fragment {
                         ContextCompat.getColor(requireContext(), R.color.green_menu)
                 );
                 Toast.makeText(requireContext(),
-                        "📸 Traducción activada\nApunta a texto en INGLÉS",
+                        "📸 Traducción activada\nDetección automática de idioma",
                         Toast.LENGTH_SHORT).show();
             } else {
                 btnToggleAnalysis.setText("▶️ Iniciar Traducción");
@@ -394,6 +369,10 @@ public class TraduccionCamara extends Fragment {
             return;
         }
 
+        // ✅ GUARDAR dimensiones reales de la imagen
+        imageWidth = imageProxy.getWidth();
+        imageHeight = imageProxy.getHeight();
+
         InputImage image = InputImage.fromMediaImage(
                 imageProxy.getImage(),
                 imageProxy.getImageInfo().getRotationDegrees()
@@ -412,7 +391,7 @@ public class TraduccionCamara extends Fragment {
     }
 
     /**
-     * ⭐ PROCESAR TEXTO DETECTADO Y CREAR OVERLAYS
+     * ⭐ PROCESAR SOLO TEXTO COMPLETAMENTE DENTRO DEL RECUADRO (CORREGIDO)
      */
     private void procesarTextoDetectado(Text visionText) {
         List<Text.TextBlock> blocks = visionText.getTextBlocks();
@@ -422,10 +401,17 @@ public class TraduccionCamara extends Fragment {
             return;
         }
 
-        Log.d(TAG, "📝 Bloques detectados: " + blocks.size());
+        // ✅ Obtener el recuadro de captura en coordenadas de imagen
+        Rect captureRect = overlayView.getCaptureBoxInImageCoords();
 
-        List<TraduccionOverlayView.TranslationBox> translationBoxes = new ArrayList<>();
+        Log.d(TAG, "📦 Recuadro captura: " + captureRect.toString());
 
+        overlayView.setImageDimensions(imageWidth, imageHeight);
+
+        List<Text.TextBlock> blocksWithinBox = new ArrayList<>();
+        StringBuilder textoCompleto = new StringBuilder();
+
+        // ✅ PASO 1: Filtrar bloques que están COMPLETAMENTE dentro del recuadro
         for (Text.TextBlock block : blocks) {
             String originalText = block.getText();
             Rect boundingBox = block.getBoundingBox();
@@ -434,69 +420,217 @@ public class TraduccionCamara extends Fragment {
                 continue;
             }
 
-            // Verificar cache
-            if (translationCache.containsKey(originalText)) {
-                String cachedTranslation = translationCache.get(originalText);
-                translationBoxes.add(new TraduccionOverlayView.TranslationBox(  // ✅ CORREGIDO
-                        boundingBox, originalText, cachedTranslation
-                ));
+            // ✅ VERIFICAR QUE EL BLOQUE ESTÉ COMPLETAMENTE DENTRO DEL RECUADRO
+            if (isRectCompletelyInside(boundingBox, captureRect)) {
+                blocksWithinBox.add(block);
+
+                if (textoCompleto.length() > 0) {
+                    textoCompleto.append(" ");
+                }
+                textoCompleto.append(originalText);
+
+                Log.d(TAG, "✅ Texto dentro del recuadro: " + originalText);
             } else {
-                // Traducir texto
-                traducirYAgregarBox(originalText, boundingBox, translationBoxes);
+                Log.d(TAG, "⏭️ Texto ignorado (fuera del recuadro): " + originalText);
             }
         }
 
-        // Actualizar overlay cuando todas las traducciones estén listas
-        mainHandler.postDelayed(() -> {
-            overlayView.setTranslationBoxes(translationBoxes);
-        }, 500);
+        // ✅ PASO 2: Procesar solo si hay texto válido
+        if (textoCompleto.length() > 0) {
+            String textoFinal = textoCompleto.toString().trim();
+
+            // Verificar cache
+            if (translationCache.containsKey(textoFinal)) {
+                String cachedTranslation = translationCache.get(textoFinal);
+
+                List<TranslationBox> translationBoxes = new ArrayList<>();
+                translationBoxes.add(new TranslationBox(
+                        captureRect, textoFinal, cachedTranslation
+                ));
+
+                mainHandler.post(() -> overlayView.setTranslationBoxes(translationBoxes));
+
+                Log.d(TAG, "💾 Usando traducción en cache");
+            } else {
+                // Detectar idioma y traducir
+                List<TranslationBox> translationBoxes = new ArrayList<>();
+                detectarIdiomaYTraducir(textoFinal, captureRect, translationBoxes);
+            }
+        } else {
+            // No hay texto dentro del recuadro
+            mainHandler.post(() -> overlayView.clear());
+            Log.d(TAG, "📭 No hay texto dentro del recuadro");
+        }
     }
 
     /**
-     * ⭐ TRADUCIR Y AGREGAR CAJA DE TRADUCCIÓN
+     * ✅ NUEVO: Verificar que un rectángulo esté COMPLETAMENTE dentro de otro
      */
+    private boolean isRectCompletelyInside(Rect inner, Rect outer) {
+        // Agregar un margen de 10 píxeles para ser más estricto
+        int margin = 10;
+
+        Rect strictOuter = new Rect(
+                outer.left + margin,
+                outer.top + margin,
+                outer.right - margin,
+                outer.bottom - margin
+        );
+
+        // El rectángulo interior debe estar completamente dentro del exterior
+        return strictOuter.contains(inner.left, inner.top) &&
+                strictOuter.contains(inner.right, inner.bottom);
+    }
+
     /**
-     * ⭐ TRADUCIR Y AGREGAR CAJA DE TRADUCCIÓN
+     * ⭐ DETECTAR IDIOMA Y TRADUCIR (MEJORADO)
      */
-    private void traducirYAgregarBox(String texto, Rect boundingBox,
-                                     List<TraduccionOverlayView.TranslationBox> boxes) {
-        if (translator == null) {
-            return;
-        }
+    private void detectarIdiomaYTraducir(String texto, Rect boundingBox,
+                                         List<TranslationBox> boxes) {
+        languageIdentifier.identifyLanguage(texto)
+                .addOnSuccessListener(languageCode -> {
+                    if (languageCode.equals("und")) {
+                        Log.w(TAG, "⚠️ Idioma no detectado para: " + texto);
 
-        translator.translate(texto)
-                .addOnSuccessListener(translatedText -> {
-                    Log.d(TAG, "✅ Traducido: " + texto + " -> " + translatedText);
-
-                    // Guardar en cache
-                    translationCache.put(texto, translatedText);
-
-                    // Agregar a la lista
-                    boxes.add(new TraduccionOverlayView.TranslationBox(  // ✅ CORREGIDO
-                            boundingBox, texto, translatedText
-                    ));
-
-                    // Guardar en historial (solo la primera vez)
-                    if (translationCache.size() == 1) {
-                        guardarEnHistorial(texto, translatedText);
+                        // Mostrar mensaje en el overlay
+                        boxes.clear();
+                        boxes.add(new TranslationBox(
+                                boundingBox, texto, "⚠️ No se pudo detectar el idioma"
+                        ));
+                        mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+                        return;
                     }
+
+                    Log.d(TAG, "🌍 Idioma detectado: " + languageCode + " (" + texto + ")");
+
+                    // Si el idioma detectado es el mismo que el destino, no traducir
+                    if (languageCode.equals(targetLanguageApiCode)) {
+                        Log.d(TAG, "⏭️ Texto ya está en idioma destino");
+
+                        boxes.clear();
+                        boxes.add(new TranslationBox(
+                                boundingBox, texto, "✓ Ya está en " + obtenerNombreIdioma(targetLanguageApiCode)
+                        ));
+                        mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+                        return;
+                    }
+
+                    // Traducir con el idioma detectado
+                    traducirConIdiomaOrigen(texto, languageCode, boundingBox, boxes);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Error traducción: " + e.getMessage());
+                    Log.e(TAG, "❌ Error detectando idioma: " + e.getMessage());
+
+                    // Mostrar error en el overlay
+                    boxes.clear();
+                    boxes.add(new TranslationBox(
+                            boundingBox, texto, "❌ Error al detectar idioma"
+                    ));
+                    mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
                 });
     }
 
-    private void guardarEnHistorial(String textoOriginal, String textoTraducido) {
+    /**
+     * ⭐ TRADUCIR CON IDIOMA DE ORIGEN ESPECÍFICO (MEJORADO CON MEJOR MANEJO DE ERRORES)
+     */
+    private void traducirConIdiomaOrigen(String texto, String sourceLanguage,
+                                         Rect boundingBox,
+                                         List<TranslationBox> boxes) {
+        // Crear traductor temporal para este par de idiomas
+        TranslatorOptions options = new TranslatorOptions.Builder()
+                .setSourceLanguage(sourceLanguage)
+                .setTargetLanguage(targetLanguageApiCode)
+                .build();
+
+        Translator tempTranslator = Translation.getClient(options);
+
+        DownloadConditions conditions = new DownloadConditions.Builder()
+                .requireWifi()
+                .build();
+
+        Log.d(TAG, "🔄 Iniciando traducción: " + sourceLanguage + " → " + targetLanguageApiCode);
+
+        tempTranslator.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "✅ Modelo descargado/disponible");
+
+                    // Traducir
+                    tempTranslator.translate(texto)
+                            .addOnSuccessListener(translatedText -> {
+                                Log.d(TAG, "✅ Traducción exitosa: " + texto + " → " + translatedText);
+
+                                // Guardar en cache
+                                translationCache.put(texto, translatedText);
+
+                                // ✅ LIMPIAR lista antes de agregar nueva traducción
+                                boxes.clear();
+
+                                // Agregar la traducción
+                                boxes.add(new TranslationBox(
+                                        boundingBox, texto, translatedText
+                                ));
+
+                                // ✅ Actualizar UI en el hilo principal
+                                mainHandler.post(() -> {
+                                    overlayView.setTranslationBoxes(new ArrayList<>(boxes));
+                                });
+
+                                // Guardar en historial
+                                guardarEnHistorial(texto, translatedText, sourceLanguage);
+
+                                // Cerrar traductor temporal
+                                tempTranslator.close();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "❌ Error en traducción: " + e.getMessage());
+
+                                boxes.clear();
+                                boxes.add(new TranslationBox(
+                                        boundingBox, texto, "❌ Error al traducir"
+                                ));
+                                mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+
+                                tempTranslator.close();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Modelo no disponible: " + sourceLanguage + "→" + targetLanguageApiCode);
+                    Log.e(TAG, "❌ Detalles: " + e.getMessage());
+
+                    boxes.clear();
+                    boxes.add(new TranslationBox(
+                            boundingBox,
+                            texto,
+                            "⚠️ Conecta a WiFi para descargar modelo\n" +
+                                    sourceLanguage + " → " + targetLanguageApiCode
+                    ));
+
+                    mainHandler.post(() -> {
+                        overlayView.setTranslationBoxes(new ArrayList<>(boxes));
+
+                        Toast.makeText(requireContext(),
+                                "❌ Modelo " + sourceLanguage + "→" + targetLanguageApiCode + " no disponible",
+                                Toast.LENGTH_SHORT).show();
+                    });
+
+                    tempTranslator.close();
+                });
+    }
+
+    /**
+     * ⭐ GUARDAR EN HISTORIAL CON IDIOMA DE ORIGEN DETECTADO
+     */
+    private void guardarEnHistorial(String textoOriginal, String textoTraducido, String sourceLanguageCode) {
         if (userId == -1 || textoOriginal.isEmpty() || textoTraducido.isEmpty()) {
             return;
         }
 
         new Thread(() -> {
-            // Idioma origen: inglés (por ahora hardcoded)
-            LanguageDAO.Language sourceLanguage = languageDAO.obtenerIdiomaPorApiCode("en");
+            LanguageDAO.Language sourceLanguage = languageDAO.obtenerIdiomaPorApiCode(sourceLanguageCode);
             LanguageDAO.Language targetLanguage = languageDAO.obtenerIdiomaPorApiCode(targetLanguageApiCode);
 
             if (sourceLanguage == null || targetLanguage == null) {
+                Log.w(TAG, "⚠️ Idioma no encontrado en DB: " + sourceLanguageCode);
                 return;
             }
 
@@ -511,6 +645,27 @@ public class TraduccionCamara extends Fragment {
 
             Log.d(TAG, result > 0 ? "💾 Historial: " + result : "⚠️ Duplicado");
         }).start();
+    }
+
+    /**
+     * ✅ NUEVO: Obtener nombre legible del idioma
+     */
+    private String obtenerNombreIdioma(String apiCode) {
+        for (LanguageDAO.Language lang : idiomasDisponibles) {
+            if (lang.apiCode.equals(apiCode)) {
+                return lang.name;
+            }
+        }
+        return apiCode.toUpperCase();
+    }
+
+    /**
+     * ✅ NUEVO: Limpiar cache cuando se mueve el recuadro
+     */
+    public void limpiarCacheTraduccion() {
+        translationCache.clear();
+        overlayView.clear();
+        Log.d(TAG, "🧹 Cache limpiado");
     }
 
     private void abrirConfiguracion() {
