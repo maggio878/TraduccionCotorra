@@ -4,17 +4,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".TraduccionTexto"
+    tools:context=".TraduccionDocumento"
     android:id="@+id/translation_frag"
     android:background="@drawable/app_bg_removed">
 
-    <!-- Barra superior con título -->
+    <!-- Barra superior -->
     <RelativeLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
         android:padding="20dp">
+
         <ImageView
             android:id="@+id/menu_icon"
             android:layout_width="40dp"
@@ -23,6 +24,7 @@
             android:layout_centerVertical="true"
             android:src="@drawable/parrot2"
             android:contentDescription="Logo" />
+
         <ImageButton
             android:id="@+id/menu_button_config"
             android:layout_width="50dp"
@@ -32,203 +34,245 @@
             android:src="@drawable/settings2"
             android:background="@android:color/transparent"
             android:contentDescription="Menú" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:gravity="center"
-            android:text="TRADUCCIÓN \nDE \n DOCUMENTO"
+            android:text="TRADUCCIÓN\nDE\nDOCUMENTO"
             android:textColor="@android:color/black"
             android:textSize="22sp"
             android:textStyle="bold"/>
     </RelativeLayout>
 
-    <!-- Search Bar - Positioned below top_bar -->
-    <LinearLayout
-        android:id="@+id/search_bar_documentos"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/top_bar"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/rounded_searchbar_bg"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="8dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="Buscar"
-            android:src="@android:drawable/ic_menu_search" />
-
-        <EditText
-            android:id="@+id/et_buscar_documentos"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:hint="Buscar documentos"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:maxLines="1"
-            android:padding="8dp" />
-    </LinearLayout>
-    <!-- Main Content Area (can be used for document list later) -->
-    <!-- Recent Documents Section -->
-    <FrameLayout
-        android:id="@+id/recent_documents_container"
+    <!-- ScrollView principal -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/search_bar_documentos"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_below="@id/top_bar"
         android:layout_marginBottom="72dp">
 
-        <!-- Section Title -->
-        <TextView
-            android:id="@+id/documentos_recientes_title"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Documentos recientes"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <!-- Grid of Document Icons -->
-        <GridLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:columnCount="3"
-            android:useDefaultMargins="true">
+            <!-- Botón seleccionar documento -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_seleccionar_documento"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="📄 Seleccionar Documento (PDF/Word)"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@null"
+                android:background="@drawable/button_orange_background"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
 
-            <!-- Document 1 -->
+            <!-- Selección de idiomas -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Idioma origen:"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp"/>
+
+                    <androidx.appcompat.widget.AppCompatSpinner
+                        android:id="@+id/spinner_source_language"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:background="@drawable/rounded_spinner_bg"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Idioma destino:"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp"/>
+
+                    <androidx.appcompat.widget.AppCompatSpinner
+                        android:id="@+id/spinner_target_language"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:background="@drawable/rounded_spinner_bg"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Layout de traducción (oculto inicialmente) -->
+            <LinearLayout
+                android:id="@+id/layout_traduccion_documento"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="center"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:padding="8dp">
+                android:visibility="gone">
 
-                <ImageView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@android:drawable/ic_menu_report_image"
-                    android:background="#E1F5FE"
-                    android:padding="12dp"
-                    android:contentDescription="PDF Document"/>
-
+                <!-- Texto extraído -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Contrato.pdf"
-                    android:layout_marginTop="4dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:text="Texto extraído:"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/et_texto_extraido"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:background="@drawable/rounded_edittext_bg"
+                    android:gravity="top|start"
+                    android:hint="El texto del documento aparecerá aquí..."
+                    android:inputType="textMultiLine"
+                    android:padding="12dp"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Botón traducir -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_traducir_documento"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="🌐 Traducir Documento"
+                    android:textColor="@android:color/white"
+                    app:backgroundTint="@color/green_menu"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Texto traducido con botón favorito -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Texto traducido:"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+
+                    <ImageButton
+                        android:id="@+id/btn_favorito_documento"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_alignParentEnd="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_star_outline"
+                        android:contentDescription="Favorito"/>
+                </RelativeLayout>
+
+                <EditText
+                    android:id="@+id/et_texto_traducido"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:background="@drawable/rounded_edittext_bg"
+                    android:gravity="top|start"
+                    android:hint="La traducción aparecerá aquí..."
+                    android:inputType="textMultiLine"
+                    android:padding="12dp"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="16dp"/>
+
             </LinearLayout>
 
-            <!-- Document 2 -->
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <!-- Separador -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="#CCCCCC"
+                android:layout_marginVertical="16dp"/>
+
+            <!-- Documentos recientes -->
+            <TextView
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:padding="8dp">
+                android:text="DOCUMENTOS RECIENTES"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/blue_menu"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Search bar -->
+            <LinearLayout
+                android:id="@+id/search_bar_documentos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/rounded_searchbar_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:layout_marginBottom="16dp">
 
                 <ImageView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@android:drawable/ic_menu_gallery"
-                    android:background="#F1F8E9"
-                    android:padding="12dp"
-                    android:contentDescription="Image Document"/>
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="Buscar"
+                    android:src="@android:drawable/ic_menu_search" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <EditText
+                    android:id="@+id/et_buscar_documentos"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Recibo.jpg"
-                    android:layout_marginTop="4dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Buscar documentos"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:padding="8dp" />
             </LinearLayout>
 
-            <!-- Document 3 -->
+            <!-- Contenedor de documentos recientes -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/container_documentos_recientes"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:padding="8dp">
-
-                <ImageView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@android:drawable/ic_menu_edit"
-                    android:background="#FFF3E0"
-                    android:padding="12dp"
-                    android:contentDescription="Text Document"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Notas.txt"
-                    android:layout_marginTop="4dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                android:orientation="vertical">
+                <!-- Se agregarán dinámicamente -->
             </LinearLayout>
 
-            <!-- Document 4 -->
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <!-- Mensaje cuando no hay documentos -->
+            <TextView
+                android:id="@+id/tv_no_documentos"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:text="No hay documentos recientes"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:padding="8dp">
+                android:padding="24dp"
+                android:visibility="gone"/>
 
-                <ImageView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@android:drawable/ic_menu_slideshow"
-                    android:background="#E8EAF6"
-                    android:padding="12dp"
-                    android:contentDescription="Presentation Document"/>
+        </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Presentación.pptx"
-                    android:layout_marginTop="4dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
-            </LinearLayout>
+    </ScrollView>
 
-            <!-- Add more document buttons as needed -->
-        </GridLayout>
-
-        <!-- Empty State Message (shown when no recent documents) -->
-        <TextView
-            android:id="@+id/empty_documents_message"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="No hay documentos recientes"
-            android:textSize="16sp"
-            android:textColor="#757575"
-            android:visibility="gone"/>
-    </FrameLayout>
-    <!-- somehow add a grid and some resources so it can show the recent files with its data -->
 </RelativeLayout>
