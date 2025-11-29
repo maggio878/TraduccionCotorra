@@ -4,6 +4,13 @@
 
     <!-- permisos para la app -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!--para traduccion por camara-->
+    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!--para traduccion de archivos-->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
@@ -30,6 +37,9 @@
             android:exported="false"/>
         <activity android:name=".RegistroActivity"
             android:exported="false"/>
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr,translate" />
     </application>
 
 </manifest>
