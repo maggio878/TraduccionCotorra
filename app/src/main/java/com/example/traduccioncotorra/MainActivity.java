@@ -35,13 +35,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // ═══════════════════════════════════════════════════════
-        // TESTS DE VERIFICACIÓN - Comentar después de probar
-        // ═══════════════════════════════════════════════════════
         probarConexionBD();
         verificarTablaUser();
-        // probarRegistro(); // Descomentar para insertar usuario de prueba
-        // ═══════════════════════════════════════════════════════
 
         // Configurar edge to edge
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -172,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e("LOGIN", "Error al validar credenciales", e);
-            Toast.makeText(this, "Error al conectar con la base de datos", Toast.LENGTH_SHORT).show();
+       //     Toast.makeText(this, "Error al conectar con la base de datos", Toast.LENGTH_SHORT).show();
             return false;
         }
     }
@@ -186,13 +181,13 @@ public class MainActivity extends AppCompatActivity {
             ManagerDB manager = new ManagerDB(this);
             manager.AbrirConexion();
 
-            Toast.makeText(this, "✅ BD conectada correctamente", Toast.LENGTH_SHORT).show();
+          //  Toast.makeText(this, "✅ BD conectada correctamente", Toast.LENGTH_SHORT).show();
             Log.d("TEST_BD", "✅ Conexión exitosa a la base de datos");
 
             manager.CerrarConexion();
 
         } catch (Exception e) {
-            Toast.makeText(this, "❌ Error BD: " + e.getMessage(), Toast.LENGTH_LONG).show();
+       //     Toast.makeText(this, "❌ Error BD: " + e.getMessage(), Toast.LENGTH_LONG).show();
             Log.e("TEST_BD", "❌ Error al conectar BD: ", e);
         }
     }
@@ -206,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (cursor != null && cursor.moveToFirst()) {
                 int total = cursor.getInt(0);
-                Toast.makeText(this, "✅ Tabla User OK. Total usuarios: " + total, Toast.LENGTH_LONG).show();
+              //  Toast.makeText(this, "✅ Tabla User OK. Total usuarios: " + total, Toast.LENGTH_LONG).show();
                 Log.d("TEST_BD", "✅ Tabla User existe. Total usuarios: " + total);
                 cursor.close();
             }
@@ -214,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
             manager.CerrarConexion();
 
         } catch (Exception e) {
-            Toast.makeText(this, "❌ Tabla User no existe: " + e.getMessage(), Toast.LENGTH_LONG).show();
+      //      Toast.makeText(this, "❌ Tabla User no existe: " + e.getMessage(), Toast.LENGTH_LONG).show();
             Log.e("TEST_BD", "❌ Error al verificar tabla User: ", e);
         }
     }
@@ -229,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
 
             // Verificar si ya existe
             if (userDAO.existeUsername("test123")) {
-                Toast.makeText(this, "⚠️ Usuario test123 ya existe", Toast.LENGTH_SHORT).show();
+              //  Toast.makeText(this, "⚠️ Usuario test123 ya existe", Toast.LENGTH_SHORT).show();
                 Log.d("TEST_BD", "Usuario test123 ya existe en la BD");
                 return;
             }

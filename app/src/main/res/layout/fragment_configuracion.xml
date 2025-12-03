@@ -59,58 +59,58 @@
             android:padding="16dp">
 
             <!-- Sección: Idiomas -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="IDIOMAS"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/blue_menu"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="12dp"/>
+<!--            <TextView-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="IDIOMAS"-->
+<!--                android:textSize="16sp"-->
+<!--                android:textStyle="bold"-->
+<!--                android:textColor="@color/blue_menu"-->
+<!--                android:layout_marginTop="8dp"-->
+<!--                android:layout_marginBottom="12dp"/>-->
 
-            <!-- Idioma principal de la aplicación -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Idioma principal de la aplicación"
-                android:textSize="14sp"
-                android:textColor="@android:color/black"
-                android:layout_marginBottom="8dp"/>
+<!--            &lt;!&ndash; Idioma principal de la aplicación &ndash;&gt;-->
+<!--            <TextView-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Idioma principal de la aplicación"-->
+<!--                android:textSize="14sp"-->
+<!--                android:textColor="@android:color/black"-->
+<!--                android:layout_marginBottom="8dp"/>-->
 
-            <androidx.appcompat.widget.AppCompatSpinner
-                android:id="@+id/spinner_idioma_principal"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/rounded_spinner_bg"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:layout_marginBottom="16dp"/>
+<!--            <androidx.appcompat.widget.AppCompatSpinner-->
+<!--                android:id="@+id/spinner_idioma_principal"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="50dp"-->
+<!--                android:background="@drawable/rounded_spinner_bg"-->
+<!--                android:paddingStart="16dp"-->
+<!--                android:paddingEnd="16dp"-->
+<!--                android:layout_marginBottom="16dp"/>-->
 
-            <!-- Idiomas preferidos -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Idiomas preferidos para traducción"
-                android:textSize="14sp"
-                android:textColor="@android:color/black"
-                android:layout_marginBottom="8dp"/>
+<!--            &lt;!&ndash; Idiomas preferidos &ndash;&gt;-->
+<!--            <TextView-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Idiomas preferidos para traducción"-->
+<!--                android:textSize="14sp"-->
+<!--                android:textColor="@android:color/black"-->
+<!--                android:layout_marginBottom="8dp"/>-->
 
-            <androidx.appcompat.widget.AppCompatSpinner
-                android:id="@+id/spinner_idiomas_preferidos"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/rounded_spinner_bg"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:layout_marginBottom="16dp"/>
+<!--            <androidx.appcompat.widget.AppCompatSpinner-->
+<!--                android:id="@+id/spinner_idiomas_preferidos"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="50dp"-->
+<!--                android:background="@drawable/rounded_spinner_bg"-->
+<!--                android:paddingStart="16dp"-->
+<!--                android:paddingEnd="16dp"-->
+<!--                android:layout_marginBottom="16dp"/>-->
 
-            <!-- Separador -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#CCCCCC"
-                android:layout_marginVertical="8dp"/>
+<!--            &lt;!&ndash; Separador &ndash;&gt;-->
+<!--            <View-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="1dp"-->
+<!--                android:background="#CCCCCC"-->
+<!--                android:layout_marginVertical="8dp"/>-->
 
             <!-- Sección: Modo Offline -->
             <TextView
@@ -275,15 +275,15 @@
                 app:backgroundTint="@color/green_menu"
                 android:layout_marginBottom="16dp"/>
 
-            <!-- Botón cuenta -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_cuenta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Mi cuenta"
-                android:textColor="@android:color/white"
-                app:backgroundTint="@color/green_menu"
-                android:layout_marginBottom="16dp"/>
+<!--            &lt;!&ndash; Botón cuenta &ndash;&gt;-->
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btn_cuenta"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Mi cuenta"-->
+<!--                android:textColor="@android:color/white"-->
+<!--                app:backgroundTint="@color/green_menu"-->
+<!--                android:layout_marginBottom="16dp"/>-->
 
             <!-- Botón cerrar sesión -->
             <com.google.android.material.button.MaterialButton

@@ -265,10 +265,10 @@ public class TraduccionCamara extends Fragment {
 
         modeloDescargado = true; // Ya no necesitamos pre-descargar
 
-        Log.d(TAG, "✅ Traductor configurado para destino: " + targetLanguageCode);
-        Toast.makeText(requireContext(),
-                "✅ Listo para traducir a " + obtenerNombreIdioma(targetLanguageCode),
-                Toast.LENGTH_SHORT).show();
+//        Log.d(TAG, "✅ Traductor configurado para destino: " + targetLanguageCode);
+//        Toast.makeText(requireContext(),
+//                "✅ Listo para traducir a " + obtenerNombreIdioma(targetLanguageCode),
+//                Toast.LENGTH_SHORT).show();
     }
 
     private void configurarListeners() {

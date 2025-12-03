@@ -77,7 +77,7 @@ public class Configuracion extends Fragment {
         inicializarVistas(view);
 
         // Configurar spinners
-        configurarSpinners();
+        //configurarSpinners();
 
         // Configurar switches
         configurarSwitches();
@@ -138,8 +138,8 @@ public class Configuracion extends Fragment {
     }
 
     private void inicializarVistas(View view) {
-        spinnerIdiomaPrincipal = view.findViewById(R.id.spinner_idioma_principal);
-        spinnerIdiomasPreferidos = view.findViewById(R.id.spinner_idiomas_preferidos);
+     //   spinnerIdiomaPrincipal = view.findViewById(R.id.spinner_idioma_principal);
+     //   spinnerIdiomasPreferidos = view.findViewById(R.id.spinner_idiomas_preferidos);
         switchModoOffline = view.findViewById(R.id.switch_modo_offline);
         switchSonidos = view.findViewById(R.id.switch_sonidos);
         btnEliminarHistorial = view.findViewById(R.id.btn_eliminar_historial);
@@ -148,7 +148,7 @@ public class Configuracion extends Fragment {
         btnVerReportes = view.findViewById(R.id.btn_ver_reportes);
         btnEliminarCuenta = view.findViewById(R.id.btn_eliminar_cuenta);
         btnInformacionApp = view.findViewById(R.id.btn_informacion_app);
-        btnCuenta = view.findViewById(R.id.btn_cuenta);
+   //     btnCuenta = view.findViewById(R.id.btn_cuenta);
         btnCerrarSesion = view.findViewById(R.id.btn_cerrar_sesion);
         btnAdminCatalogos = view.findViewById(R.id.btn_admin_catalogos);
 
@@ -162,9 +162,9 @@ public class Configuracion extends Fragment {
         String[] idiomas;
         if (idiomasDB.isEmpty()) {
             idiomas = new String[]{"Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués"};
-            Toast.makeText(getContext(),
-                    "⚠️ No hay idiomas en BD. Usando idiomas por defecto",
-                    Toast.LENGTH_SHORT).show();
+     //       Toast.makeText(getContext(),
+   //                 "⚠️ No hay idiomas en BD. Usando idiomas por defecto",
+  //                  Toast.LENGTH_SHORT).show();
         } else {
             // Convertir lista de idiomas a array
             idiomas = new String[idiomasDB.size()];
@@ -209,13 +209,13 @@ public class Configuracion extends Fragment {
                         // Actualizar también el objeto en memoria
                         configActual.primaryLanguageId = languageId;
 
-                        Toast.makeText(getContext(),
-                                "Idioma principal actualizado: " + idiomaPrincipal,
-                                Toast.LENGTH_SHORT).show();
+              //          Toast.makeText(getContext(),
+             //                   "Idioma principal actualizado: " + idiomaPrincipal,
+             //                   Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(getContext(),
-                                "Error al guardar el idioma",
-                                Toast.LENGTH_SHORT).show();
+             //           Toast.makeText(getContext(),
+             //                   "Error al guardar el idioma",
+             //                   Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -229,9 +229,9 @@ public class Configuracion extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String idiomaPreferido = idiomas[position];
-                Toast.makeText(getContext(),
-                        "Idioma preferido agregado: " + idiomaPreferido,
-                        Toast.LENGTH_SHORT).show();
+         //       Toast.makeText(getContext(),
+         //               "Idioma preferido agregado: " + idiomaPreferido,
+         //               Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -318,19 +318,19 @@ public class Configuracion extends Fragment {
         // Botón información de la app
         btnInformacionApp.setOnClickListener(v -> {
             Toast.makeText(getContext(),
-                    "Traducción Cotorra v1.0\n" +
-                            "Tecnológico Nacional de México\n" +
-                            "Campus Nogales\n\n" +
-                            "Desarrollado por:\n" +
-                            "Regina Perez Benítez\n" +
-                            "Jose Mario Luque Fernandez",
+                    "Traducción Cotorra v1.0\n",
+                //            "Tecnológico Nacional de México\n" +
+                //            "Campus Nogales\n\n" +
+                 //           "Desarrollado por:\n" +
+                 //           "Regina Perez Benítez\n" +
+                 //           "Jose Mario Luque Fernandez",
                     Toast.LENGTH_LONG).show();
         });
 
         // Botón cuenta
-        btnCuenta.setOnClickListener(v -> {
-            mostrarInformacionCuenta();
-        });
+//        btnCuenta.setOnClickListener(v -> {
+//            mostrarInformacionCuenta();
+//        });
 
         // Botón cerrar sesión
         btnCerrarSesion.setOnClickListener(v -> {
