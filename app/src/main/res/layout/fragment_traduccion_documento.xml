@@ -151,6 +151,7 @@
                     android:inputType="textMultiLine"
                     android:padding="12dp"
                     android:textSize="14sp"
+                    android:scrollbars="vertical"
                     android:layout_marginBottom="16dp"/>
 
                 <!-- Botón traducir -->
@@ -198,6 +199,7 @@
                     android:inputType="textMultiLine"
                     android:padding="12dp"
                     android:textSize="14sp"
+                    android:scrollbars="vertical"
                     android:layout_marginBottom="16dp"/>
 
             </LinearLayout>
