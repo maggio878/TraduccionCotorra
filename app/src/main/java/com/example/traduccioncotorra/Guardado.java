@@ -140,33 +140,63 @@ public class Guardado extends Fragment {
     }
 
     private View crearTarjetaFavorito(FavoriteTranslationDAO.FavoriteTranslation favorito) {
-        // Crear contenedor principal
-        LinearLayout tarjeta = new LinearLayout(getContext());
-        tarjeta.setOrientation(LinearLayout.VERTICAL);
-        tarjeta.setPadding(24, 24, 24, 24);
-        tarjeta.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+        // ⭐ Crear CardView en lugar de LinearLayout
+        androidx.cardview.widget.CardView cardView = new androidx.cardview.widget.CardView(getContext());
 
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+        // ⭐ Configuración del CardView con estilo Material
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(8, 8, 8, 8);
-        tarjeta.setLayoutParams(params);
+        cardParams.setMargins(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+        cardView.setLayoutParams(cardParams);
 
-        // Header con idiomas y botón eliminar
+        cardView.setRadius(dpToPx(16));
+        cardView.setCardElevation(dpToPx(4));
+        cardView.setCardBackgroundColor(android.graphics.Color.WHITE);
+        cardView.setMaxCardElevation(dpToPx(6));
+        cardView.setUseCompatPadding(true);
+        cardView.setClickable(true);
+        cardView.setFocusable(true);
+
+        // ⭐ Efecto ripple personalizado
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.content.res.ColorStateList rippleColor =
+                    android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#20000000")
+                    );
+
+            android.graphics.drawable.RippleDrawable rippleDrawable =
+                    new android.graphics.drawable.RippleDrawable(
+                            rippleColor,
+                            null,
+                            null
+                    );
+
+            cardView.setForeground(rippleDrawable);
+        }
+
+        // Crear contenedor interno
+        LinearLayout tarjeta = new LinearLayout(getContext());
+        tarjeta.setOrientation(LinearLayout.VERTICAL);
+        tarjeta.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16));
+        tarjeta.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+
+        // ⭐ Header con idiomas y botón eliminar
         LinearLayout header = new LinearLayout(getContext());
         header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setPadding(0, 0, 0, 12);
+        header.setPadding(0, 0, 0, dpToPx(8));
 
         // Obtener nombres de idiomas
         String idiomaOrigen = obtenerNombreIdioma(favorito.sourceLanguageId);
         String idiomaDestino = obtenerNombreIdioma(favorito.targetLanguageId);
 
-        // Idiomas
+        // ⭐ Idiomas con mejor formato
         TextView tvIdiomas = new TextView(getContext());
         tvIdiomas.setText(idiomaOrigen + " → " + idiomaDestino);
         tvIdiomas.setTextSize(12);
-        tvIdiomas.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        tvIdiomas.setTextColor(android.graphics.Color.parseColor("#757575"));
+        tvIdiomas.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams idiomasParams = new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -175,14 +205,26 @@ public class Guardado extends Fragment {
         tvIdiomas.setLayoutParams(idiomasParams);
         header.addView(tvIdiomas);
 
-        // Botón eliminar
+        // ⭐ Botón eliminar mejorado
         ImageButton btnEliminar = new ImageButton(getContext());
         btnEliminar.setImageResource(android.R.drawable.ic_menu_delete);
-        btnEliminar.setBackgroundResource(android.R.drawable.btn_default);
-        btnEliminar.setPadding(8, 8, 8, 8);
+        btnEliminar.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+
+        // Efecto ripple para el botón
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getContext().getTheme().resolveAttribute(
+                    android.R.attr.selectableItemBackgroundBorderless,
+                    outValue,
+                    true
+            );
+            btnEliminar.setBackground(getContext().getDrawable(outValue.resourceId));
+        }
+
+        btnEliminar.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
         LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                dpToPx(40),
+                dpToPx(40)
         );
         btnEliminar.setLayoutParams(btnParams);
         btnEliminar.setOnClickListener(v -> confirmarEliminar(favorito));
@@ -190,38 +232,84 @@ public class Guardado extends Fragment {
 
         tarjeta.addView(header);
 
-        // Texto original
+        // ⭐ Texto original con mejor formato
         TextView tvOriginal = new TextView(getContext());
         tvOriginal.setText(favorito.originalText);
         tvOriginal.setTextSize(16);
-        tvOriginal.setTextColor(getResources().getColor(android.R.color.black));
-        tvOriginal.setPadding(0, 8, 0, 4);
+        tvOriginal.setTextColor(android.graphics.Color.parseColor("#212121"));
+        tvOriginal.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams originalParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        originalParams.setMargins(0, dpToPx(4), 0, dpToPx(8));
+        tvOriginal.setLayoutParams(originalParams);
         tarjeta.addView(tvOriginal);
 
-        // Texto traducido
+        // ⭐ Texto traducido con mejor formato
         TextView tvTraducido = new TextView(getContext());
         tvTraducido.setText("→ " + favorito.translatedText);
         tvTraducido.setTextSize(16);
-        tvTraducido.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
-        tvTraducido.setPadding(0, 4, 0, 8);
+        tvTraducido.setTextColor(android.graphics.Color.parseColor("#1976D2")); // Azul material
+        LinearLayout.LayoutParams traducidoParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        traducidoParams.setMargins(0, 0, 0, dpToPx(12));
+        tvTraducido.setLayoutParams(traducidoParams);
         tarjeta.addView(tvTraducido);
+
+        // ⭐ Footer con fecha y tipo de traducción
+        LinearLayout footer = new LinearLayout(getContext());
+        footer.setOrientation(LinearLayout.HORIZONTAL);
 
         // Fecha
         TextView tvFecha = new TextView(getContext());
-        tvFecha.setText(formatearFecha(favorito.savedDate));
+        tvFecha.setText("🕒 " + formatearFecha(favorito.savedDate));
         tvFecha.setTextSize(11);
-        tvFecha.setTextColor(getResources().getColor(android.R.color.darker_gray));
-        tvFecha.setAlpha(0.6f);
-        tarjeta.addView(tvFecha);
+        tvFecha.setTextColor(android.graphics.Color.parseColor("#9E9E9E"));
+        LinearLayout.LayoutParams fechaParams = new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+        );
+        tvFecha.setLayoutParams(fechaParams);
+        footer.addView(tvFecha);
 
-        // Click en la tarjeta para copiar
-        tarjeta.setOnClickListener(v -> {
+        // Tipo de traducción (opcional)
+        TextView tvTipo = new TextView(getContext());
+        String tipoTraduccion = obtenerTipoTraduccion(favorito.translationTypeId);
+        tvTipo.setText(tipoTraduccion);
+        tvTipo.setTextSize(11);
+        tvTipo.setTextColor(android.graphics.Color.parseColor("#9E9E9E"));
+        footer.addView(tvTipo);
+
+        tarjeta.addView(footer);
+
+        // Agregar el layout interno al CardView
+        cardView.addView(tarjeta);
+
+        // ⭐ Click en la tarjeta para copiar
+        cardView.setOnClickListener(v -> {
+            // Copiar al portapapeles
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+
+            android.content.ClipData clip = android.content.ClipData.newPlainText(
+                    "Traducción",
+                    favorito.translatedText
+            );
+
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+            }
+
             Toast.makeText(getContext(),
-                    "Traducción copiada:\n" + favorito.translatedText,
+                    "📋 Copiado: " + favorito.translatedText,
                     Toast.LENGTH_SHORT).show();
         });
 
-        return tarjeta;
+        return cardView;
     }
 
     private void filtrarFavoritos(String busqueda) {
@@ -402,5 +490,35 @@ public class Guardado extends Fragment {
         // Recargar favoritos cuando el fragment vuelve a estar visible
         cargarFavoritosDesdeDB();
         mostrarFavoritos();
+    }
+    /**
+     * Convertir dp a píxeles
+     */
+    private int dpToPx(int dp) {
+        if (getResources() != null) {
+            float density = getResources().getDisplayMetrics().density;
+            return Math.round(dp * density);
+        }
+        return dp;
+    }
+    private String obtenerTipoTraduccion(int translationTypeId) {
+        TranslationTypeDAO.TranslationType tipo = translationTypeDAO.obtenerTipoPorId(translationTypeId);
+
+        if (tipo != null) {
+            switch (tipo.name.toLowerCase()) {
+                case "texto":
+                    return "📝";
+                case "cámara":
+                    return "📷";
+                case "documento":
+                    return "📄";
+                case "voz":
+                    return "🎤";
+                default:
+                    return "🌐";
+            }
+        }
+
+        return "🌐";
     }
 }
