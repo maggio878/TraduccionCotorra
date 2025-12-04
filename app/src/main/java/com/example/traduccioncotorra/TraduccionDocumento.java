@@ -2,11 +2,15 @@ package com.example.traduccioncotorra;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -21,19 +25,20 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+
+import com.example.traduccioncotorra.DB.FavoriteTranslationDAO;
 import com.example.traduccioncotorra.DB.HistorialDAO;
 import com.example.traduccioncotorra.DB.LanguageDAO;
 import com.example.traduccioncotorra.DB.TranslationTypeDAO;
 import com.example.traduccioncotorra.DB.UserDAO;
-import com.example.traduccioncotorra.DB.FavoriteTranslationDAO;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.button.MaterialButton;
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.Translation;
@@ -42,6 +47,7 @@ import com.google.mlkit.nl.translate.TranslatorOptions;
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
@@ -50,9 +56,11 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class TraduccionDocumento extends Fragment {
@@ -84,7 +92,7 @@ public class TraduccionDocumento extends Fragment {
     private TranslationTypeDAO translationTypeDAO;
     private FavoriteTranslationDAO favoriteDAO;
     private int userId;
-    private int translationTypeId = 3; // 3 = Documento
+    private int translationTypeId = 3;
 
     // Idiomas
     private List<LanguageDAO.Language> idiomasDisponibles;
@@ -106,34 +114,23 @@ public class TraduccionDocumento extends Fragment {
     // Launcher para seleccionar archivo
     private ActivityResultLauncher<Intent> documentPickerLauncher;
 
+    // ⭐ Almacenar documentos con sus traducciones
+    private Map<String, DocumentoReciente> documentosMap = new HashMap<>();
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_traduccion_documento, container, false);
 
-        // Inicializar PDFBox
         PDFBoxResourceLoader.init(requireContext());
 
-        // Inicializar DAOs
         inicializarDAOs();
-
-        // Inicializar launcher
         inicializarDocumentPicker();
-
-        // Inicializar vistas
         inicializarVistas(view);
-
-        // Cargar idiomas
         cargarIdiomasDesdeDB();
-
-        // Configurar spinners
         configurarSpinners();
-
-        // Configurar listeners
         configurarListeners();
-
-        // Cargar documentos recientes
         cargarDocumentosRecientes();
 
         return view;
@@ -147,7 +144,6 @@ public class TraduccionDocumento extends Fragment {
         favoriteDAO = new FavoriteTranslationDAO(requireContext());
         userId = userDAO.obtenerUserIdActual(requireContext());
 
-        // Obtener ID del tipo "Documento"
         TranslationTypeDAO.TranslationType tipoDoc = translationTypeDAO.obtenerTipoPorNombre("Documento");
         if (tipoDoc != null) {
             translationTypeId = tipoDoc.idTypeTranslation;
@@ -187,7 +183,17 @@ public class TraduccionDocumento extends Fragment {
         btnFavorito = view.findViewById(R.id.btn_favorito_documento);
         layoutTraduccion = view.findViewById(R.id.layout_traduccion_documento);
 
-        // Ocultar layout de traducción inicialmente
+        // ⭐ Mejorar colores de texto
+        if (etTextoExtraido != null) {
+            etTextoExtraido.setTextColor(Color.parseColor("#212121"));
+            etTextoExtraido.setHintTextColor(Color.parseColor("#9E9E9E"));
+        }
+
+        if (etTextoTraducido != null) {
+            etTextoTraducido.setTextColor(Color.parseColor("#1976D2"));
+            etTextoTraducido.setHintTextColor(Color.parseColor("#9E9E9E"));
+        }
+
         layoutTraduccion.setVisibility(View.GONE);
     }
 
@@ -208,13 +214,11 @@ public class TraduccionDocumento extends Fragment {
             return;
         }
 
-        // Crear array de nombres
         String[] nombresIdiomas = new String[idiomasDisponibles.size()];
         for (int i = 0; i < idiomasDisponibles.size(); i++) {
             nombresIdiomas[i] = idiomasDisponibles.get(i).name;
         }
 
-        // Adapters
         ArrayAdapter<String> adapterSource = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
@@ -232,7 +236,6 @@ public class TraduccionDocumento extends Fragment {
         spinnerSourceLanguage.setAdapter(adapterSource);
         spinnerTargetLanguage.setAdapter(adapterTarget);
 
-        // Selección por defecto: Español -> Inglés
         int posEspanol = buscarPosicionIdioma("Español");
         int posIngles = buscarPosicionIdioma("Inglés");
 
@@ -250,7 +253,6 @@ public class TraduccionDocumento extends Fragment {
             targetLanguageCode = idioma.apiCode;
         }
 
-        // Listeners
         spinnerSourceLanguage.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -290,19 +292,12 @@ public class TraduccionDocumento extends Fragment {
     }
 
     private void configurarListeners() {
-        // Botón seleccionar documento
         btnSeleccionarDocumento.setOnClickListener(v -> abrirSelectorDocumento());
-
-        // Botón traducir
         btnTraducir.setOnClickListener(v -> traducirDocumento());
-
-        // Botón favorito
         btnFavorito.setOnClickListener(v -> toggleFavorito());
-
-        // Botón configuración
         menuButtonConfig.setOnClickListener(v -> abrirConfiguracion());
 
-        // Búsqueda de documentos
+        // ⭐ Búsqueda funcional
         etBuscarDocumentos.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -335,7 +330,6 @@ public class TraduccionDocumento extends Fragment {
 
         new Thread(() -> {
             try {
-                // Verificar tamaño del archivo
                 long fileSize = obtenerTamanoArchivo(uri);
                 if (fileSize > MAX_FILE_SIZE) {
                     requireActivity().runOnUiThread(() -> {
@@ -347,10 +341,8 @@ public class TraduccionDocumento extends Fragment {
                     return;
                 }
 
-                // Obtener nombre del archivo
                 nombreDocumentoActual = obtenerNombreArchivo(uri);
 
-                // Extraer texto según el tipo
                 String texto = "";
                 String mimeType = requireContext().getContentResolver().getType(uri);
 
@@ -461,7 +453,6 @@ public class TraduccionDocumento extends Fragment {
 
         translator = Translation.getClient(options);
 
-        // Descargar modelo si es necesario
         DownloadConditions conditions = new DownloadConditions.Builder()
                 .requireWifi()
                 .build();
@@ -504,13 +495,8 @@ public class TraduccionDocumento extends Fragment {
                             "✅ Documento traducido",
                             Toast.LENGTH_SHORT).show();
 
-                    // Guardar en historial
                     guardarEnHistorial();
-
-                    // Agregar a recientes
-                    agregarARecientes(nombreDocumentoActual);
-
-                    // Verificar si ya es favorito
+                    agregarARecientes(nombreDocumentoActual, textoExtraido, textoTraducido);
                     verificarEstadoFavorito();
                 })
                 .addOnFailureListener(e -> {
@@ -556,7 +542,6 @@ public class TraduccionDocumento extends Fragment {
         }
 
         if (esFavorito) {
-            // Eliminar de favoritos
             int resultado = favoriteDAO.eliminarFavoritoPorTextos(
                     userId, textoExtraido, textoTraducido);
 
@@ -568,7 +553,6 @@ public class TraduccionDocumento extends Fragment {
                         Toast.LENGTH_SHORT).show();
             }
         } else {
-            // Agregar a favoritos
             FavoriteTranslationDAO.FavoriteTranslation favorito =
                     new FavoriteTranslationDAO.FavoriteTranslation(
                             userId,
@@ -605,20 +589,28 @@ public class TraduccionDocumento extends Fragment {
         }
     }
 
-    private void agregarARecientes(String nombreDocumento) {
+    // ⭐ NUEVO: Agregar a recientes con traducción completa
+    private void agregarARecientes(String nombreDocumento, String textoOriginal, String textoTrad) {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, 0);
         Set<String> recientes = new HashSet<>(prefs.getStringSet(KEY_RECIENTES, new HashSet<>()));
 
-        // Crear entrada con timestamp
-        String entrada = nombreDocumento + "|" + System.currentTimeMillis();
+        // Preview (primeros 80 caracteres)
+        String preview = textoOriginal.length() > 80 ?
+                textoOriginal.substring(0, 80) + "..." : textoOriginal;
 
-        // Eliminar si ya existe (para actualizarlo al principio)
+        String entrada = nombreDocumento + "|" + System.currentTimeMillis() + "|" + preview;
+
+        // Guardar la traducción completa en el mapa
+        documentosMap.put(nombreDocumento, new DocumentoReciente(
+                nombreDocumento,
+                System.currentTimeMillis(),
+                textoOriginal,
+                textoTrad
+        ));
+
         recientes.removeIf(s -> s.startsWith(nombreDocumento + "|"));
-
-        // Agregar nuevo
         recientes.add(entrada);
 
-        // Mantener solo los 5 más recientes
         List<String> lista = new ArrayList<>(recientes);
         lista.sort((a, b) -> {
             long timeA = Long.parseLong(a.split("\\|")[1]);
@@ -630,10 +622,7 @@ public class TraduccionDocumento extends Fragment {
             lista = lista.subList(0, MAX_RECIENTES);
         }
 
-        // Guardar
         prefs.edit().putStringSet(KEY_RECIENTES, new HashSet<>(lista)).apply();
-
-        // Recargar UI
         cargarDocumentosRecientes();
     }
 
@@ -645,99 +634,357 @@ public class TraduccionDocumento extends Fragment {
 
         if (recientes.isEmpty()) {
             tvNoDocumentos.setVisibility(View.VISIBLE);
+            tvNoDocumentos.setText("📭 No hay documentos recientes\n\nSelecciona un documento PDF o Word para comenzar");
             return;
         }
 
         tvNoDocumentos.setVisibility(View.GONE);
 
-        // Ordenar por timestamp
         List<String> lista = new ArrayList<>(recientes);
         lista.sort((a, b) -> {
-            long timeA = Long.parseLong(a.split("\\|")[1]);
-            long timeB = Long.parseLong(b.split("\\|")[1]);
-            return Long.compare(timeB, timeA);
+            try {
+                long timeA = Long.parseLong(a.split("\\|")[1]);
+                long timeB = Long.parseLong(b.split("\\|")[1]);
+                return Long.compare(timeB, timeA);
+            } catch (Exception e) {
+                return 0;
+            }
         });
 
-        // Crear tarjetas
         for (String entrada : lista) {
             String[] partes = entrada.split("\\|");
+            if (partes.length < 2) continue;
+
             String nombre = partes[0];
             long timestamp = Long.parseLong(partes[1]);
+            String preview = partes.length > 2 ? partes[2] : "";
 
-            View tarjeta = crearTarjetaDocumento(nombre, timestamp);
+            View tarjeta = crearTarjetaDocumento(nombre, timestamp, preview);
             containerDocumentosRecientes.addView(tarjeta);
         }
     }
 
-    private View crearTarjetaDocumento(String nombre, long timestamp) {
-        LinearLayout tarjeta = new LinearLayout(getContext());
-        tarjeta.setOrientation(LinearLayout.VERTICAL);
-        tarjeta.setPadding(24, 16, 24, 16);
-        tarjeta.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+    // ⭐ NUEVO: Tarjeta de documento mejorada con Material Design
+    private View crearTarjetaDocumento(String nombre, long timestamp, String preview) {
+        CardView cardView = new CardView(getContext());
 
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(8, 8, 8, 8);
-        tarjeta.setLayoutParams(params);
+        cardParams.setMargins(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+        cardView.setLayoutParams(cardParams);
 
-        // Icono y nombre
+        cardView.setRadius(dpToPx(16));
+        cardView.setCardElevation(dpToPx(4));
+        cardView.setCardBackgroundColor(Color.WHITE);
+        cardView.setMaxCardElevation(dpToPx(6));
+        cardView.setUseCompatPadding(true);
+        cardView.setClickable(true);
+        cardView.setFocusable(true);
+
+        // Ripple effect
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.content.res.ColorStateList rippleColor =
+                    android.content.res.ColorStateList.valueOf(Color.parseColor("#20000000"));
+
+            android.graphics.drawable.RippleDrawable rippleDrawable =
+                    new android.graphics.drawable.RippleDrawable(rippleColor, null, null);
+
+            cardView.setForeground(rippleDrawable);
+        }
+
+        LinearLayout tarjeta = new LinearLayout(getContext());
+        tarjeta.setOrientation(LinearLayout.VERTICAL);
+        tarjeta.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16));
+        tarjeta.setBackgroundColor(Color.TRANSPARENT);
+
+        // Header con icono y nombre
         LinearLayout header = new LinearLayout(getContext());
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
+        // Icono del documento
         ImageView icono = new ImageView(getContext());
         if (nombre.toLowerCase().endsWith(".pdf")) {
             icono.setImageResource(android.R.drawable.ic_menu_report_image);
+            icono.setColorFilter(Color.parseColor("#D32F2F")); // Rojo para PDF
         } else {
             icono.setImageResource(android.R.drawable.ic_menu_edit);
+            icono.setColorFilter(Color.parseColor("#1976D2")); // Azul para Word
         }
-        LinearLayout.LayoutParams iconoParams = new LinearLayout.LayoutParams(48, 48);
-        iconoParams.setMargins(0, 0, 16, 0);
+        LinearLayout.LayoutParams iconoParams = new LinearLayout.LayoutParams(
+                dpToPx(40), dpToPx(40)
+        );
+        iconoParams.setMargins(0, 0, dpToPx(12), 0);
         icono.setLayoutParams(iconoParams);
         header.addView(icono);
 
-        TextView tvNombre = new TextView(getContext());
-        tvNombre.setText(nombre);
-        tvNombre.setTextSize(14);
-        tvNombre.setTypeface(null, android.graphics.Typeface.BOLD);
-        LinearLayout.LayoutParams nombreParams = new LinearLayout.LayoutParams(
+        // Contenedor de texto
+        LinearLayout textoContainer = new LinearLayout(getContext());
+        textoContainer.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textoParams = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
         );
-        tvNombre.setLayoutParams(nombreParams);
-        header.addView(tvNombre);
+        textoContainer.setLayoutParams(textoParams);
 
-        tarjeta.addView(header);
+        // Nombre del documento
+        TextView tvNombre = new TextView(getContext());
+        tvNombre.setText(nombre);
+        tvNombre.setTextSize(16);
+        tvNombre.setTextColor(Color.parseColor("#212121"));
+        tvNombre.setTypeface(null, Typeface.BOLD);
+        tvNombre.setMaxLines(1);
+        tvNombre.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        textoContainer.addView(tvNombre);
+
+        // Preview del texto
+        if (!preview.isEmpty()) {
+            TextView tvPreview = new TextView(getContext());
+            tvPreview.setText(preview);
+            tvPreview.setTextSize(12);
+            tvPreview.setTextColor(Color.parseColor("#757575"));
+            tvPreview.setMaxLines(2);
+            tvPreview.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            previewParams.topMargin = dpToPx(4);
+            tvPreview.setLayoutParams(previewParams);
+            textoContainer.addView(tvPreview);
+        }
 
         // Fecha
         TextView tvFecha = new TextView(getContext());
-        tvFecha.setText(formatearFecha(timestamp));
+        tvFecha.setText("🕒 " + formatearFecha(timestamp));
         tvFecha.setTextSize(11);
-        tvFecha.setTextColor(getResources().getColor(android.R.color.darker_gray));
-        tvFecha.setPadding(64, 4, 0, 0);
-        tarjeta.addView(tvFecha);
+        tvFecha.setTextColor(Color.parseColor("#9E9E9E"));
+        LinearLayout.LayoutParams fechaParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        fechaParams.topMargin = dpToPx(4);
+        tvFecha.setLayoutParams(fechaParams);
+        textoContainer.addView(tvFecha);
 
-        // Click listener
-        tarjeta.setOnClickListener(v -> {
-            Toast.makeText(getContext(),
-                    "Documento: " + nombre,
-                    Toast.LENGTH_SHORT).show();
+        header.addView(textoContainer);
+
+        // ⭐ Botones de acción
+        LinearLayout botonesContainer = new LinearLayout(getContext());
+        botonesContainer.setOrientation(LinearLayout.VERTICAL);
+
+        // Botón copiar traducción
+        ImageButton btnCopiar = new ImageButton(getContext());
+        btnCopiar.setImageResource(android.R.drawable.ic_menu_set_as);
+        btnCopiar.setBackgroundColor(Color.TRANSPARENT);
+        btnCopiar.setColorFilter(Color.parseColor("#1976D2"));
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getContext().getTheme().resolveAttribute(
+                    android.R.attr.selectableItemBackgroundBorderless,
+                    outValue,
+                    true
+            );
+            btnCopiar.setBackground(getContext().getDrawable(outValue.resourceId));
+        }
+
+        LinearLayout.LayoutParams btnCopiarParams = new LinearLayout.LayoutParams(
+                dpToPx(40), dpToPx(40)
+        );
+        btnCopiar.setLayoutParams(btnCopiarParams);
+        btnCopiar.setOnClickListener(v -> {
+            copiarTraduccion(nombre);
+        });
+        botonesContainer.addView(btnCopiar);
+
+        // Botón eliminar
+        ImageButton btnEliminar = new ImageButton(getContext());
+        btnEliminar.setImageResource(android.R.drawable.ic_menu_delete);
+        btnEliminar.setBackgroundColor(Color.TRANSPARENT);
+        btnEliminar.setColorFilter(Color.parseColor("#D32F2F"));
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getContext().getTheme().resolveAttribute(
+                    android.R.attr.selectableItemBackgroundBorderless,
+                    outValue,
+                    true
+            );
+            btnEliminar.setBackground(getContext().getDrawable(outValue.resourceId));
+        }
+
+        LinearLayout.LayoutParams btnEliminarParams = new LinearLayout.LayoutParams(
+                dpToPx(40), dpToPx(40)
+        );
+        btnEliminarParams.topMargin = dpToPx(4);
+        btnEliminar.setLayoutParams(btnEliminarParams);
+        btnEliminar.setOnClickListener(v -> {
+            eliminarDocumentoReciente(nombre);
+        });
+        botonesContainer.addView(btnEliminar);
+
+        header.addView(botonesContainer);
+
+        tarjeta.addView(header);
+        cardView.addView(tarjeta);
+
+        // Click en la tarjeta para ver preview
+        cardView.setOnClickListener(v -> {
+            mostrarVistaPrevia(nombre, preview);
         });
 
-        return tarjeta;
+        return cardView;
     }
 
-    private String formatearFecha(long timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-        return sdf.format(new Date(timestamp));
+    // ⭐ NUEVO: Copiar traducción al portapapeles
+    private void copiarTraduccion(String nombreDocumento) {
+        DocumentoReciente doc = documentosMap.get(nombreDocumento);
+
+        if (doc != null && doc.textoTraducido != null && !doc.textoTraducido.isEmpty()) {
+            ClipboardManager clipboard = (ClipboardManager)
+                    getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+
+            ClipData clip = ClipData.newPlainText("Traducción", doc.textoTraducido);
+
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(getContext(),
+                        "📋 Traducción copiada al portapapeles",
+                        Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(getContext(),
+                    "⚠️ No hay traducción disponible para este documento",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
+    // ⭐ NUEVO: Mostrar vista previa del documento
+    private void mostrarVistaPrevia(String nombre, String preview) {
+        DocumentoReciente doc = documentosMap.get(nombre);
+
+        String mensaje = preview.isEmpty() ?
+                "No hay vista previa disponible" :
+                "📄 " + nombre + "\n\n" + preview;
+
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("Vista previa del documento")
+                .setMessage(mensaje)
+                .setPositiveButton("Cerrar", null)
+                .setNeutralButton("Copiar traducción", (dialog, which) -> {
+                    copiarTraduccion(nombre);
+                })
+                .show();
+    }
+
+    // ⭐ NUEVO: Eliminar documento de recientes
+    private void eliminarDocumentoReciente(String nombreDocumento) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, 0);
+        Set<String> recientes = new HashSet<>(prefs.getStringSet(KEY_RECIENTES, new HashSet<>()));
+
+        recientes.removeIf(s -> s.startsWith(nombreDocumento + "|"));
+        documentosMap.remove(nombreDocumento);
+
+        prefs.edit().putStringSet(KEY_RECIENTES, recientes).apply();
+
+        cargarDocumentosRecientes();
+
+        Toast.makeText(getContext(),
+                "🗑️ Documento eliminado de recientes",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    // ⭐ NUEVO: Filtrar documentos (SearchBar funcional)
     private void filtrarDocumentos(String query) {
-        // Implementar filtrado si es necesario
+        containerDocumentosRecientes.removeAllViews();
+
         if (query.isEmpty()) {
             cargarDocumentosRecientes();
+            return;
         }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, 0);
+        Set<String> recientes = prefs.getStringSet(KEY_RECIENTES, new HashSet<>());
+
+        if (recientes.isEmpty()) {
+            tvNoDocumentos.setVisibility(View.VISIBLE);
+            tvNoDocumentos.setText("📭 No hay documentos recientes");
+            return;
+        }
+
+        String queryLower = query.toLowerCase();
+        List<String> listaFiltrada = new ArrayList<>();
+
+        for (String entrada : recientes) {
+            String[] partes = entrada.split("\\|");
+            String nombre = partes[0];
+            String preview = partes.length > 2 ? partes[2] : "";
+
+            if (nombre.toLowerCase().contains(queryLower) ||
+                    preview.toLowerCase().contains(queryLower)) {
+                listaFiltrada.add(entrada);
+            }
+        }
+
+        if (listaFiltrada.isEmpty()) {
+            tvNoDocumentos.setVisibility(View.VISIBLE);
+            tvNoDocumentos.setText("🔍 No se encontraron documentos que coincidan con:\n\"" + query + "\"");
+            return;
+        }
+
+        tvNoDocumentos.setVisibility(View.GONE);
+
+        listaFiltrada.sort((a, b) -> {
+            try {
+                long timeA = Long.parseLong(a.split("\\|")[1]);
+                long timeB = Long.parseLong(b.split("\\|")[1]);
+                return Long.compare(timeB, timeA);
+            } catch (Exception e) {
+                return 0;
+            }
+        });
+
+        for (String entrada : listaFiltrada) {
+            String[] partes = entrada.split("\\|");
+            String nombre = partes[0];
+            long timestamp = Long.parseLong(partes[1]);
+            String preview = partes.length > 2 ? partes[2] : "";
+
+            View tarjeta = crearTarjetaDocumento(nombre, timestamp, preview);
+            containerDocumentosRecientes.addView(tarjeta);
+        }
+    }
+
+    // ⭐ Formatear fecha relativa
+    private String formatearFecha(long timestamp) {
+        long diferencia = System.currentTimeMillis() - timestamp;
+        long segundos = diferencia / 1000;
+        long minutos = segundos / 60;
+        long horas = minutos / 60;
+        long dias = horas / 24;
+
+        if (dias > 7) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            return sdf.format(new Date(timestamp));
+        } else if (dias > 0) {
+            return "Hace " + dias + (dias == 1 ? " día" : " días");
+        } else if (horas > 0) {
+            return "Hace " + horas + (horas == 1 ? " hora" : " horas");
+        } else if (minutos > 0) {
+            return "Hace " + minutos + (minutos == 1 ? " minuto" : " minutos");
+        } else {
+            return "Hace unos segundos";
+        }
+    }
+
+    private int dpToPx(int dp) {
+        if (getResources() != null) {
+            float density = getResources().getDisplayMetrics().density;
+            return Math.round(dp * density);
+        }
+        return dp;
     }
 
     private void abrirConfiguracion() {
@@ -754,6 +1001,21 @@ public class TraduccionDocumento extends Fragment {
         super.onDestroyView();
         if (translator != null) {
             translator.close();
+        }
+    }
+
+    // ⭐ Clase interna para almacenar documentos recientes con sus traducciones
+    private static class DocumentoReciente {
+        String nombre;
+        long timestamp;
+        String textoOriginal;
+        String textoTraducido;
+
+        DocumentoReciente(String nombre, long timestamp, String textoOriginal, String textoTraducido) {
+            this.nombre = nombre;
+            this.timestamp = timestamp;
+            this.textoOriginal = textoOriginal;
+            this.textoTraducido = textoTraducido;
         }
     }
 }

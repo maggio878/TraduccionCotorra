@@ -173,6 +173,7 @@ public class Diccionario extends Fragment {
         cardView.setCardElevation(dpToPx(2));
         cardView.setClickable(true);
         cardView.setFocusable(true);
+        cardView.setCardBackgroundColor(Color.WHITE);
 
         // Configurar el efecto ripple de forma segura
         try {

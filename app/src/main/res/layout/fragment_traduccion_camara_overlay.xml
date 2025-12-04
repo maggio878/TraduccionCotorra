@@ -36,7 +36,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:text="TRADUCCIÓN EN VIVO"
+                android:text="TRADUCCIÓN POR CAMARA"
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -85,7 +85,7 @@
         android:layout_centerHorizontal="true"
         android:layout_below="@id/top_bar"
         android:layout_marginTop="24dp"
-        android:text="📱 Apunta la cámara a texto en INGLÉS"
+        android:text="📱 Apunta la cámara a texto"
         android:textColor="@android:color/white"
         android:textSize="14sp"
         android:textStyle="bold"
