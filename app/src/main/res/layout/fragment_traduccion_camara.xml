@@ -7,6 +7,8 @@
     android:background="@drawable/fondo2">
 
     <!-- ⭐ Top Bar -->
+
+    <!-- ⭐ FAB para capturar foto -->
     <RelativeLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
@@ -20,15 +22,15 @@
             android:layout_height="40dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/settings2"
             android:background="@android:color/transparent"
-            android:contentDescription="Configuración" />
+            android:contentDescription="Configuración"
+            android:src="@drawable/settings2" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="TRADUCCIÓN POR FOTO"
+            android:text="TRADUCCIÓN POR CAMARA"
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -41,7 +43,6 @@
             android:src="@drawable/parrot2" />
     </RelativeLayout>
 
-    <!-- ⭐ FAB para capturar foto -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_capture"
         android:layout_width="wrap_content"

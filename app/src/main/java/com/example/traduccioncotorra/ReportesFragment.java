@@ -67,6 +67,18 @@ public class ReportesFragment extends Fragment {
         btnVolver = view.findViewById(R.id.btn_volver);
         radioGroupReportes = view.findViewById(R.id.radio_group_reportes);
         pieChart = view.findViewById(R.id.pieChart);
+        com.google.android.material.card.MaterialCardView cardSelector =
+                view.findViewById(R.id.card_selector);
+        com.google.android.material.card.MaterialCardView cardGrafico =
+                view.findViewById(R.id.card_grafico);
+
+        if (cardSelector != null) {
+            cardSelector.setCardBackgroundColor(Color.WHITE);
+        }
+
+        if (cardGrafico != null) {
+            cardGrafico.setCardBackgroundColor(Color.WHITE);
+        }
     }
 
     private void configurarListeners() {
