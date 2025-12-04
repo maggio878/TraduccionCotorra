@@ -590,42 +590,135 @@ public class TraduccionCamara extends Fragment {
     /**
      * ⭐ DETECTAR IDIOMA CON CACHE
      */
-    private void detectarIdiomaYTraducir(String texto, Rect boundingBox,
-                                         List<TranslationBox> boxes) {
-
+    private void detectarIdiomaYTraducir(String texto, Rect boundingBox, List<TranslationBox> boxes) {
         Log.d(TAG, "🔍 Detectando idioma para: " + texto);
 
         languageIdentifier.identifyLanguage(texto)
                 .addOnSuccessListener(languageCode -> {
-                    if (languageCode.equals("und")) {
-                        Log.w(TAG, "⚠️ Idioma no detectado, intentando con inglés por defecto");
-                        traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
+                    if (!languageCode.equals("und") && !languageCode.equals(targetLanguageApiCode)) {
+                        Log.d(TAG, "🌍 Idioma detectado: " + languageCode);
+                        traducirConIdiomaOrigen(texto, languageCode, boundingBox, boxes);
                         return;
                     }
 
-                    Log.d(TAG, "🌍 Idioma detectado: " + languageCode);
-
+                    // 🔄 Si no se detecta o ya está en el idioma destino
                     if (languageCode.equals(targetLanguageApiCode)) {
-                        Log.d(TAG, "⏭️ Texto ya está en idioma destino");
-
-                        // ✅ Guardar en estado
                         ultimaTraduccion = "✓ Ya está en " + obtenerNombreIdioma(targetLanguageApiCode);
-
                         boxes.clear();
-                        boxes.add(new TranslationBox(
-                                boundingBox, texto, ultimaTraduccion
-                        ));
+                        boxes.add(new TranslationBox(boundingBox, texto, ultimaTraduccion));
                         mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
                         return;
                     }
 
-                    traducirConIdiomaOrigen(texto, languageCode, boundingBox, boxes);
+                    // ❓ Idioma no detectado: probar con idiomas soportados (excepto target)
+                    probarTraduccionDesdeIdiomasSoportados(texto, boundingBox, boxes);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error detectando idioma: " + e.getMessage());
-                    traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
+                    probarTraduccionDesdeIdiomasSoportados(texto, boundingBox, boxes);
                 });
     }
+    private void probarTraduccionDesdeIdiomasSoportados(String texto, Rect boundingBox, List<TranslationBox> boxes) {
+        List<String> candidatos = new ArrayList<>();
+        for (LanguageDAO.Language lang : idiomasDisponibles) {
+            if (!lang.apiCode.equals(targetLanguageApiCode)) {
+                candidatos.add(lang.apiCode);
+            }
+        }
+
+        if (candidatos.isEmpty()) {
+            mostrarErrorTraduccion(boundingBox, texto, boxes, "⚠️ No hay idiomas de origen válidos");
+            return;
+        }
+
+        // 👉 Intentar uno por uno (en orden, o el más usado)
+        probarCandidatos(texto, candidatos, 0, boundingBox, boxes);
+    }
+
+    private void probarCandidatos(String texto, List<String> candidatos, int index,
+                                  Rect boundingBox, List<TranslationBox> boxes) {
+        if (index >= candidatos.size()) {
+            mostrarErrorTraduccion(boundingBox, texto, boxes, "❌ No se pudo traducir");
+            return;
+        }
+
+        String lang = candidatos.get(index);
+        TranslatorOptions options = new TranslatorOptions.Builder()
+                .setSourceLanguage(lang)
+                .setTargetLanguage(targetLanguageApiCode)
+                .build();
+        Translator temp = Translation.getClient(options);
+
+        temp.downloadModelIfNeeded(new DownloadConditions.Builder().build())
+                .addOnSuccessListener(v -> temp.translate(texto)
+                        .addOnSuccessListener(trad -> {
+                            // Si la traducción no es idéntica, asumimos éxito
+                            if (!trad.trim().equalsIgnoreCase(texto.trim())) {
+                                translationCache.put(texto, trad);
+                                ultimaTraduccion = trad;
+                                boxes.clear();
+                                boxes.add(new TranslationBox(boundingBox, texto, trad));
+                                mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+                                guardarEnHistorial(texto, trad, lang);
+                                temp.close();
+                                return;
+                            }
+                            // Si no, probar siguiente idioma
+                            temp.close();
+                            probarCandidatos(texto, candidatos, index + 1, boundingBox, boxes);
+                        })
+                        .addOnFailureListener(e -> {
+                            temp.close();
+                            probarCandidatos(texto, candidatos, index + 1, boundingBox, boxes);
+                        })
+                )
+                .addOnFailureListener(e -> {
+                    temp.close();
+                    probarCandidatos(texto, candidatos, index + 1, boundingBox, boxes);
+                });
+    }
+
+    private void mostrarErrorTraduccion(Rect boundingBox, String texto, List<TranslationBox> boxes, String mensaje) {
+        boxes.clear();
+        boxes.add(new TranslationBox(boundingBox, texto, mensaje));
+        mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+    }
+//    private void detectarIdiomaYTraducir(String texto, Rect boundingBox,
+//                                         List<TranslationBox> boxes) {
+//
+//        Log.d(TAG, "🔍 Detectando idioma para: " + texto);
+//
+//        languageIdentifier.identifyLanguage(texto)
+//                .addOnSuccessListener(languageCode -> {
+//                    if (languageCode.equals("und")) {
+//                        Log.w(TAG, "⚠️ Idioma no detectado, intentando con inglés por defecto");
+//                        traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
+//                        return;
+//                    }
+//
+//                    Log.d(TAG, "🌍 Idioma detectado: " + languageCode);
+//
+//                    if (languageCode.equals(targetLanguageApiCode)) {
+//                        Log.d(TAG, "⏭️ Texto ya está en idioma destino");
+//
+//                        // ✅ Guardar en estado
+//                        ultimaTraduccion = "✓ Ya está en " + obtenerNombreIdioma(targetLanguageApiCode);
+//
+//                        boxes.clear();
+//                        boxes.add(new TranslationBox(
+//                                boundingBox, texto, ultimaTraduccion
+//                        ));
+//                        mainHandler.post(() -> overlayView.setTranslationBoxes(new ArrayList<>(boxes)));
+//                        return;
+//                    }
+//
+//                    traducirConIdiomaOrigen(texto, languageCode, boundingBox, boxes);
+//                })
+//                .addOnFailureListener(e -> {
+//                    Log.e(TAG, "❌ Error detectando idioma: " + e.getMessage());
+//                    traducirConIdiomaOrigen(texto, "en", boundingBox, boxes);
+//                });
+//    }
 
     /**
      * ⭐ TRADUCIR CON ACTUALIZACIÓN DE ESTADO
